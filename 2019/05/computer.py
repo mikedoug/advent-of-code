@@ -42,9 +42,7 @@ class Computer(object):
         return value
 
     def execute(self):
-        memory = self.memory
-
-        while memory[self.i] != 99:
+        while self.memory[self.i] != 99:
             # print(f'I: {self.i}')
             # print(self.memory)
             opcode = self.next_instruction()
@@ -55,7 +53,7 @@ class Computer(object):
                 parameter2 = self.get_parameter()
                 dest = self.get_dest_parameter()
 
-                memory[dest] = parameter1 + parameter2
+                self.memory[dest] = parameter1 + parameter2
 
             # MULTIPLY
             elif opcode == 2:
@@ -63,7 +61,7 @@ class Computer(object):
                 parameter2 = self.get_parameter()
                 dest = self.get_dest_parameter()
 
-                memory[dest] = parameter1 * parameter2
+                self.memory[dest] = parameter1 * parameter2
 
             # Opcode 3 takes a single integer as input and saves it to the
             # address given by its only parameter. For example, the
@@ -72,7 +70,7 @@ class Computer(object):
             elif opcode == 3:
                 dest = self.get_dest_parameter()
                 print("Enter value:")
-                memory[dest] = int(sys.stdin.readline().rstrip())
+                self.memory[dest] = int(sys.stdin.readline().rstrip())
 
             # Opcode 4 outputs the value of its only parameter. For example,
             # the instruction 4,50 would output the value at address 50.
@@ -108,7 +106,7 @@ class Computer(object):
                 parameter2 = self.get_parameter()
                 dest = self.get_dest_parameter()
 
-                memory[dest] = 1 if parameter1 < parameter2 else 0
+                self.memory[dest] = 1 if parameter1 < parameter2 else 0
 
             # Opcode 8 is equals: if the first parameter is equal to the second
             # parameter, it stores 1 in the position given by the third parameter.
@@ -118,7 +116,7 @@ class Computer(object):
                 parameter2 = self.get_parameter()
                 dest = self.get_dest_parameter()
 
-                memory[dest] = 1 if parameter1 == parameter2 else 0
+                self.memory[dest] = 1 if parameter1 == parameter2 else 0
 
             else:
                 raise Exception(f'Invalid Op: {opcode}')
@@ -158,6 +156,6 @@ if 0:
                 sys.exit(0)
 
 
-program = Computer(memory)
-testmem = program.execute()
-# print(testmem)
+computer = Computer(memory)
+computer.execute()
+# print(computer.memory)
