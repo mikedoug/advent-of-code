@@ -129,33 +129,6 @@ with open("program.txt", "r") as f:
 # print(memory)
 # print()
 
-# Day 2, Step 1
-if 0:
-    memory[1] = 12
-    memory[2] = 2
-    computer = Computer(memory)
-    computer.execute()
-    print(computer.memory)
-
-
-# Day 2, Step 2
-if 0: 
-    for a in range(0,100):
-        for b in range(0,100):
-            testmem = list(memory)
-            testmem[1] = a
-            testmem[2] = b
-
-            computer = Computer(memory)
-            computer.execute()
-            testmem = computer.memory
-            if testmem[0] == 19690720:
-                print(f'{a} {b}')
-                print(a * 100 + b)
-                print(testmem)
-                sys.exit(0)
-
-
 computer = Computer(memory)
 computer.execute()
 # print(computer.memory)
