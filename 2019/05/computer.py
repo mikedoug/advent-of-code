@@ -9,7 +9,7 @@ class Computer(object):
     def _next_instruction(self):
         instruction = self.memory[self.i]
         opcode = instruction % 100
-        modes = [0,0,0,0,0] + list(map(lambda x: int(x), str(instruction)[:-2]))
+        modes = list(map(lambda x: int(x), str(instruction)[:-2]))
         # print (f'Modes: {modes}')
         # print (f'Opcode: {opcode}')
 
@@ -19,9 +19,15 @@ class Computer(object):
 
         return opcode
 
+    def _next_mode(self):
+        if len(self.current_parameter_modes) > 0:
+            return self.current_parameter_modes.pop(-1)
+
+        return 0
+
     def _get_parameter(self):
         value = self.memory[self.i]
-        mode = self.current_parameter_modes.pop(-1)
+        mode = self._next_mode()
 
         # Position Mode
         if mode == 0:
@@ -37,6 +43,7 @@ class Computer(object):
 
     def _get_dest_parameter(self):
         value = self.memory[self.i]
+        self._next_mode() # Throw away
         self.i += 1
 
         return value
