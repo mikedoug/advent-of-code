@@ -1,0 +1,163 @@
+import sys
+
+class Computer(object):
+    def __init__(self, memory):
+        # We always copy the passed-in memory so that we never harm the caller
+        self.memory = list(memory)
+        self.i = 0
+
+    def next_instruction(self):
+        instruction = self.memory[self.i]
+        opcode = instruction % 100
+        modes = [0,0,0,0,0] + list(map(lambda x: int(x), str(instruction)[:-2]))
+        # print (f'Modes: {modes}')
+        # print (f'Opcode: {opcode}')
+
+        self.current_parameter_position = 0
+        self.current_parameter_modes = modes
+        self.i += 1
+
+        return opcode
+
+    def get_parameter(self):
+        value = self.memory[self.i]
+        mode = self.current_parameter_modes.pop(-1)
+
+        # Position Mode
+        if mode == 0:
+            value = self.memory[value]
+        # Immediate Mode
+        elif mode == 1:
+            pass
+        else:
+            raise Exception(f"Invalid Mode: {mode}")
+
+        self.i += 1
+        return value
+
+    def get_dest_parameter(self):
+        value = self.memory[self.i]
+        self.i += 1
+
+        return value
+
+    def execute(self):
+        memory = self.memory
+
+        while memory[self.i] != 99:
+            # print(f'I: {self.i}')
+            # print(self.memory)
+            opcode = self.next_instruction()
+
+            # ADD
+            if opcode == 1:
+                parameter1 = self.get_parameter()
+                parameter2 = self.get_parameter()
+                dest = self.get_dest_parameter()
+
+                memory[dest] = parameter1 + parameter2
+
+            # MULTIPLY
+            elif opcode == 2:
+                parameter1 = self.get_parameter()
+                parameter2 = self.get_parameter()
+                dest = self.get_dest_parameter()
+
+                memory[dest] = parameter1 * parameter2
+
+            # Opcode 3 takes a single integer as input and saves it to the
+            # address given by its only parameter. For example, the
+            # instruction 3,50 would take an input value and store it at
+            # address 50.
+            elif opcode == 3:
+                dest = self.get_dest_parameter()
+                print("Enter value:")
+                memory[dest] = int(sys.stdin.readline().rstrip())
+
+            # Opcode 4 outputs the value of its only parameter. For example,
+            # the instruction 4,50 would output the value at address 50.
+            elif opcode == 4:
+                src = self.get_parameter()
+                print(f'OUTPUT: {src}')
+
+            # Opcode 5 is jump-if-true: if the first parameter is non-zero,
+            # it sets the instruction pointer to the value from the second
+            # parameter. Otherwise, it does nothing.
+            elif opcode == 5:
+                parameter1 = self.get_parameter()
+                parameter2 = self.get_parameter()
+
+                if parameter1 != 0:
+                    self.i = parameter2
+
+            # Opcode 6 is jump-if-false: if the first parameter is zero,
+            # it sets the instruction pointer to the value from the second
+            # parameter. Otherwise, it does nothing.
+            elif opcode == 6:
+                parameter1 = self.get_parameter()
+                parameter2 = self.get_parameter()
+
+                if parameter1 == 0:
+                    self.i = parameter2
+
+            # Opcode 7 is less than: if the first parameter is less than the
+            # second parameter, it stores 1 in the position given by the third
+            # parameter. Otherwise, it stores 0.
+            elif opcode == 7:
+                parameter1 = self.get_parameter()
+                parameter2 = self.get_parameter()
+                dest = self.get_dest_parameter()
+
+                memory[dest] = 1 if parameter1 < parameter2 else 0
+
+            # Opcode 8 is equals: if the first parameter is equal to the second
+            # parameter, it stores 1 in the position given by the third parameter.
+            # Otherwise, it stores 0.
+            elif opcode == 8:
+                parameter1 = self.get_parameter()
+                parameter2 = self.get_parameter()
+                dest = self.get_dest_parameter()
+
+                memory[dest] = 1 if parameter1 == parameter2 else 0
+
+            else:
+                raise Exception(f'Invalid Op: {opcode}')
+
+        return memory
+
+with open("program.txt", "r") as f:
+    memory = list(map(lambda x: int(x), f.readline().rstrip().split(",")))
+
+# print(memory)
+# print()
+
+# Day 2, Step 1
+if 0:
+    memory[1] = 12
+    memory[2] = 2
+    computer = Computer(memory)
+    computer.execute()
+    print(computer.memory)
+
+
+# Day 2, Step 2
+if 0: 
+    for a in range(0,100):
+        for b in range(0,100):
+            testmem = list(memory)
+            testmem[1] = a
+            testmem[2] = b
+
+            computer = Computer(memory)
+            computer.execute()
+            testmem = computer.memory
+            if testmem[0] == 19690720:
+                print(f'{a} {b}')
+                print(a * 100 + b)
+                print(testmem)
+                sys.exit(0)
+
+
+program = Computer(memory)
+testmem = program.execute()
+# print(testmem)
