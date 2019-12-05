@@ -48,7 +48,9 @@ class Computer(object):
 
         return value
 
-    def execute(self):
+    def execute(self, inputs=None):
+        outputs = []
+
         while self.memory[self.i] != 99:
             # print(f'I: {self.i}')
             # print(self.memory)
@@ -76,14 +78,24 @@ class Computer(object):
             # address 50.
             elif opcode == 3:
                 dest = self._get_dest_parameter()
-                print("Enter value:")
-                self.memory[dest] = int(sys.stdin.readline().rstrip())
+                if inputs is None:
+                    print("Enter value:")
+                    value = int(sys.stdin.readline().rstrip())
+                else:
+                    value = inputs.pop()
+
+                self.memory[dest] = value
 
             # Opcode 4 outputs the value of its only parameter. For example,
             # the instruction 4,50 would output the value at address 50.
             elif opcode == 4:
-                src = self._get_parameter()
-                print(f'OUTPUT: {src}')
+                value = self._get_parameter()
+
+                # Provided inputs implies silent output (non-interactive mode)
+                if inputs is None:
+                    print(f'OUTPUT: {value}')
+
+                outputs.append(value)
 
             # Opcode 5 is jump-if-true: if the first parameter is non-zero,
             # it sets the instruction pointer to the value from the second
@@ -128,13 +140,16 @@ class Computer(object):
             else:
                 raise Exception(f'Invalid Op: {opcode}')
 
+        return outputs
 
-with open("program.txt", "r") as f:
-    memory = list(map(lambda x: int(x), f.readline().rstrip().split(",")))
 
-# print(memory)
-# print()
+if __name__ == '__main__':
+    with open("program.txt", "r") as f:
+        memory = list(map(lambda x: int(x), f.readline().rstrip().split(",")))
 
-computer = Computer(memory)
-computer.execute()
-# print(computer.memory)
+    # print(memory)
+    # print()
+
+    computer = Computer(memory)
+    computer.execute()
+    # print(computer.memory)
