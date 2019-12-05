@@ -6,7 +6,7 @@ class Computer(object):
         self.memory = list(memory)
         self.i = 0
 
-    def next_instruction(self):
+    def _next_instruction(self):
         instruction = self.memory[self.i]
         opcode = instruction % 100
         modes = [0,0,0,0,0] + list(map(lambda x: int(x), str(instruction)[:-2]))
@@ -19,7 +19,7 @@ class Computer(object):
 
         return opcode
 
-    def get_parameter(self):
+    def _get_parameter(self):
         value = self.memory[self.i]
         mode = self.current_parameter_modes.pop(-1)
 
@@ -35,7 +35,7 @@ class Computer(object):
         self.i += 1
         return value
 
-    def get_dest_parameter(self):
+    def _get_dest_parameter(self):
         value = self.memory[self.i]
         self.i += 1
 
@@ -45,21 +45,21 @@ class Computer(object):
         while self.memory[self.i] != 99:
             # print(f'I: {self.i}')
             # print(self.memory)
-            opcode = self.next_instruction()
+            opcode = self._next_instruction()
 
             # ADD
             if opcode == 1:
-                parameter1 = self.get_parameter()
-                parameter2 = self.get_parameter()
-                dest = self.get_dest_parameter()
+                parameter1 = self._get_parameter()
+                parameter2 = self._get_parameter()
+                dest = self._get_dest_parameter()
 
                 self.memory[dest] = parameter1 + parameter2
 
             # MULTIPLY
             elif opcode == 2:
-                parameter1 = self.get_parameter()
-                parameter2 = self.get_parameter()
-                dest = self.get_dest_parameter()
+                parameter1 = self._get_parameter()
+                parameter2 = self._get_parameter()
+                dest = self._get_dest_parameter()
 
                 self.memory[dest] = parameter1 * parameter2
 
@@ -68,22 +68,22 @@ class Computer(object):
             # instruction 3,50 would take an input value and store it at
             # address 50.
             elif opcode == 3:
-                dest = self.get_dest_parameter()
+                dest = self._get_dest_parameter()
                 print("Enter value:")
                 self.memory[dest] = int(sys.stdin.readline().rstrip())
 
             # Opcode 4 outputs the value of its only parameter. For example,
             # the instruction 4,50 would output the value at address 50.
             elif opcode == 4:
-                src = self.get_parameter()
+                src = self._get_parameter()
                 print(f'OUTPUT: {src}')
 
             # Opcode 5 is jump-if-true: if the first parameter is non-zero,
             # it sets the instruction pointer to the value from the second
             # parameter. Otherwise, it does nothing.
             elif opcode == 5:
-                parameter1 = self.get_parameter()
-                parameter2 = self.get_parameter()
+                parameter1 = self._get_parameter()
+                parameter2 = self._get_parameter()
 
                 if parameter1 != 0:
                     self.i = parameter2
@@ -92,8 +92,8 @@ class Computer(object):
             # it sets the instruction pointer to the value from the second
             # parameter. Otherwise, it does nothing.
             elif opcode == 6:
-                parameter1 = self.get_parameter()
-                parameter2 = self.get_parameter()
+                parameter1 = self._get_parameter()
+                parameter2 = self._get_parameter()
 
                 if parameter1 == 0:
                     self.i = parameter2
@@ -102,9 +102,9 @@ class Computer(object):
             # second parameter, it stores 1 in the position given by the third
             # parameter. Otherwise, it stores 0.
             elif opcode == 7:
-                parameter1 = self.get_parameter()
-                parameter2 = self.get_parameter()
-                dest = self.get_dest_parameter()
+                parameter1 = self._get_parameter()
+                parameter2 = self._get_parameter()
+                dest = self._get_dest_parameter()
 
                 self.memory[dest] = 1 if parameter1 < parameter2 else 0
 
@@ -112,9 +112,9 @@ class Computer(object):
             # parameter, it stores 1 in the position given by the third parameter.
             # Otherwise, it stores 0.
             elif opcode == 8:
-                parameter1 = self.get_parameter()
-                parameter2 = self.get_parameter()
-                dest = self.get_dest_parameter()
+                parameter1 = self._get_parameter()
+                parameter2 = self._get_parameter()
+                dest = self._get_dest_parameter()
 
                 self.memory[dest] = 1 if parameter1 == parameter2 else 0
 
