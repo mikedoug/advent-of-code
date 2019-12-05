@@ -121,7 +121,6 @@ class Computer(object):
             else:
                 raise Exception(f'Invalid Op: {opcode}')
 
-        return memory
 
 with open("program.txt", "r") as f:
     memory = list(map(lambda x: int(x), f.readline().rstrip().split(",")))
