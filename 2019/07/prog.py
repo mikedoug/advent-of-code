@@ -1,4 +1,5 @@
 import computer
+import itertools
 
 with open("input.txt", "r") as f:
     software = list(map(lambda x: int(x),f.readline().rstrip().split(",")))
@@ -61,20 +62,8 @@ def feedback_loop(phases):
             return input
 
 outputs = []
-for a in range(5,10):
-    for b in range(5,10):
-        if a == b:
-            continue
-        for c in range(5,10):
-            if c in [a,b]:
-                continue
-            for d in range(5,10):
-                if d in [a, b, c]:
-                    continue
-                for e in range(5,10):
-                    if e in [a, b, c, d]:
-                        continue
-                    outputs.append(feedback_loop([a,b,c,d,e]))
+for permutation in itertools.permutations([5,6,7,8,9]):
+    outputs.append(feedback_loop(permutation))
 
 print (f"Maximum output part two: {max(outputs)}")
 if max(outputs) != 15432220:
