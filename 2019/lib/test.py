@@ -34,7 +34,7 @@ class TestComputer(unittest.TestCase):
         program = computer.Computer([2,7,6,7,4,7,99,2])
         self.assertEqual(program.execute([]), [198])
 
-    def test_input(self):
+    def test_input_output(self):
         program = computer.Computer([3,9,1002,9,3,9,4,9,99,0])
         self.assertEqual(program.execute([2]), [6])
 
@@ -44,6 +44,10 @@ class TestComputer(unittest.TestCase):
         self.assertEqual(program.state, computer.State.WAIT)
         self.assertEqual(program.safe_execute([3]), [6])
         self.assertEqual(program.state, computer.State.HALT)
+
+        for i in range(1000):
+            program = computer.Computer([3,0,4,0,99])
+            self.assertEqual(program.execute([i]), [i])
 
     def test_jump_if_true(self):
         program = computer.Computer([1005,9,6,104,1,99,104,2,99,100])
@@ -83,6 +87,23 @@ class TestComputer(unittest.TestCase):
         self.assertEqual(program.execute([]), [1])
         program = computer.Computer([1108,9,5,7,4,7,99,0])
         self.assertEqual(program.execute([]), [0])
+
+    def tests_from_02(self):
+        program = computer.Computer([1,1,1,4,99,5,6,0,99])
+        program.execute([])
+        self.assertEqual(program.memory[0], 30)
+
+        program = computer.Computer([2,4,4,5,99,0])
+        program.execute([])
+        self.assertEqual(program.memory[-1], 9801)
+        
+        program = computer.Computer([2,3,0,3,99])
+        program.execute([])
+        self.assertEqual(program.memory[3], 6)
+
+        program = computer.Computer([1,9,10,3,2,3,11,0,99,30,40,50])
+        program.execute([])
+        self.assertEqual(program.memory[0], 3500)
 
 
 if __name__ == '__main__':
