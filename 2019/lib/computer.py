@@ -20,6 +20,7 @@ class Computer(object):
         self.outputs = []
         self.i = 0
         self.state = State.INIT
+        self.trace = False
 
     def _next_instruction(self):
         instruction = self.memory[self.i]
@@ -92,7 +93,8 @@ class Computer(object):
                 dest = self._get_dest_parameter()
 
                 self.memory[dest] = parameter1 + parameter2
-                # print(f"{parameter1} + {parameter2} = {self.memory[dest]} --> {dest}")
+                if self.trace:
+                    print(f"{parameter1} + {parameter2} = {self.memory[dest]} --> {dest}")
 
             # MULTIPLY
             elif opcode == 2:
@@ -101,7 +103,8 @@ class Computer(object):
                 dest = self._get_dest_parameter()
 
                 self.memory[dest] = parameter1 * parameter2
-                # print(f"{parameter1} * {parameter2} = {self.memory[dest]} --> {dest}")
+                if self.trace:
+                    print(f"{parameter1} * {parameter2} = {self.memory[dest]} --> {dest}")
 
             # Opcode 3 takes a single integer as input and saves it to the
             # address given by its only parameter. For example, the
@@ -139,6 +142,8 @@ class Computer(object):
                 parameter1 = self._get_parameter()
                 parameter2 = self._get_parameter()
 
+                if self.trace:
+                    print(f'if({parameter1}) jump to {parameter2}')
                 if parameter1 != 0:
                     self.i = parameter2
 
