@@ -23,8 +23,8 @@ class Computer(object):
 
     def _next_instruction(self):
         instruction = self.memory[self.i]
-        opcode = instruction % 100
-        modes = list(map(lambda x: int(x), str(instruction)[:-2]))
+        modes, opcode = divmod(instruction, 100)
+        modes = [int(x) for x in reversed(str(modes))]
         # print (f'Modes: {modes}')
         # print (f'Opcode: {opcode}')
 
@@ -36,7 +36,7 @@ class Computer(object):
 
     def _next_mode(self):
         if len(self.current_parameter_modes) > 0:
-            return self.current_parameter_modes.pop(-1)
+            return self.current_parameter_modes.pop(0)
 
         return 0
 
@@ -176,15 +176,3 @@ class Computer(object):
                 raise Exception(f'Invalid Op: {opcode}')
 
         return self.outputs
-
-
-if __name__ == '__main__':
-    with open("program.txt", "r") as f:
-        memory = list(map(lambda x: int(x), f.readline().rstrip().split(",")))
-
-    # print(memory)
-    # print()
-
-    computer = Computer(memory)
-    computer.execute()
-    # print(computer.memory)

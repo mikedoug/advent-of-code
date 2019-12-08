@@ -2,43 +2,30 @@ import computer
 import itertools
 
 with open("input.txt", "r") as f:
-    software = list(map(lambda x: int(x),f.readline().rstrip().split(",")))
+    # software = list(map(lambda x: int(x),f.readline().rstrip().split(",")))
+    software = [int(x) for x in f.readline().rstrip().split(",")]
 
-outputs = []
-for a in range(5):
-    program = computer.Computer(software)
-    results = program.execute([a, 0])
-    outputA = results[0]
 
-    for b in range(5):
-        if a == b:
+# For the single pass, I am a sucker for efficiency so this method keeps
+# me from redoing calculations by doing a depth-first search.
+def single_pass(stage=1, max_stage=5, input=0, used_phases=[]):
+    outputs = []
+
+    for a in range(5):
+        if a in used_phases:
             continue
         program = computer.Computer(software)
-        results = program.execute([b, outputA])
-        outputB = results[0]
+        results = program.execute([a, input])
+        output = results[0]
 
-        for c in range(5):
-            if c in [a,b]:
-                continue
-            program = computer.Computer(software)
-            results = program.execute([c, outputB])
-            outputC = results[0]
+        if stage < max_stage:
+            outputs += single_pass(stage+1, max_stage, output, used_phases + [a])
+        else:
+            return [output]
 
-            for d in range(5):
-                if d in [a, b, c]:
-                    continue
-                program = computer.Computer(software)
-                results = program.execute([d, outputC])
-                outputD = results[0]
+    return outputs
 
-                for e in range(5):
-                    if e in [a, b, c, d]:
-                        continue
-                    program = computer.Computer(software)
-                    results = program.execute([e, outputD])
-                    # print(f"{a} {b} {c} {d} {e} -- {outputA} {outputB} {outputC} {outputD} {results[0]}")
-                    outputs.append(results[0])
-
+outputs = single_pass()
 print (f"Maximum output part one: {max(outputs)}")
 if max(outputs) != 929800:
     print("^^^^^^ FAIL ^^^^^^")
