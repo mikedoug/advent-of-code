@@ -1,5 +1,11 @@
-import computer
 import itertools
+
+import sys
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent / 'lib'))
+# pylint: disable=import-error
+import computer
+# pylint: enable=import-error
 
 with open("input.txt", "r") as f:
     # software = list(map(lambda x: int(x),f.readline().rstrip().split(",")))

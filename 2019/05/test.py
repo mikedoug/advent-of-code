@@ -1,5 +1,11 @@
 import unittest
+
+import sys
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent / 'lib'))
+# pylint: disable=import-error
 import computer
+# pylint: enable=import-error
 
 class TestComputer(unittest.TestCase):
     def setUp(self):

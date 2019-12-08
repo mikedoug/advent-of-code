@@ -1,5 +1,7 @@
 import unittest
+# pylint: disable=import-error
 import computer
+# pylint: enable=import-error
 
 class TestComputer(unittest.TestCase):
     def setUp(self):
