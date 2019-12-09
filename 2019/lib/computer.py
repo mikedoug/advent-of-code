@@ -15,15 +15,20 @@ class State(Enum):
 
 class Memory(MutableMapping):
     def __init__(self, memory):
-        self.memory = list(memory)
+        self._SEGMENT_SIZE = 16
+        self.memory = [list(memory[i:i+self._SEGMENT_SIZE]) for i in range(0, len(memory), self._SEGMENT_SIZE)]
 
     def __getitem__(self, i):
         self._validate_memory(i)
-        return self.memory[i]
+
+        segment, offset = divmod(i, self._SEGMENT_SIZE)
+        return self.memory[segment][offset]
 
     def __setitem__(self, i, value):
         self._validate_memory(i)
-        self.memory[i] = value
+
+        segment, offset = divmod(i, self._SEGMENT_SIZE)
+        self.memory[segment][offset] = value
 
     def __delitem__(self, i):
         raise Exception("Not Implemented")
@@ -32,12 +37,22 @@ class Memory(MutableMapping):
         raise Exception("Not Implemented")
 
     def __len__(self):
-        return len(self.memory)
+        return sum([len(x) for x in self.memory])
+
+    def print(self):
+        for index,segment in enumerate(self.memory):
+            print(f'{index}: {segment}')
 
     # Grows the memory as needed when references are made outside of the existing memory space
     def _validate_memory(self, position):
-        if position >= len(self.memory):
-            self.memory = list(self.memory) + [int(x) for x in '0' * (position - len(self.memory) + 1)]
+        segment, offset = divmod(position, self._SEGMENT_SIZE)
+        if segment >= len(self.memory):
+            for i in range(len(self.memory), segment+1):
+                self.memory.append([int(x) for x in '0' * self._SEGMENT_SIZE])
+
+        # If the segment does not include the specific byte, expand the segment fully
+        if offset >= len(self.memory[segment]):
+            self.memory[segment] = list(self.memory[segment]) + [int(x) for x in '0' * (self._SEGMENT_SIZE - len(self.memory[segment]))]
 
 
 class Computer(object):
