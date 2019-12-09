@@ -1,4 +1,5 @@
 import sys
+from collections.abc import MutableMapping
 from enum import Enum
 
 class NeedInput(Exception):
@@ -12,28 +13,46 @@ class State(Enum):
     HALT = 99 # The computer program has halted
 
 
-class Computer(object):
-
+class Memory(MutableMapping):
     def __init__(self, memory):
-        # We always copy the passed-in memory so that we never harm the caller
         self.memory = list(memory)
-        self.outputs = []
-        self.i = 0
-        self.state = State.INIT
-        self.trace = False
-        self._relative_base = 0
+
+    def __getitem__(self, i):
+        self._validate_memory(i)
+        return self.memory[i]
+
+    def __setitem__(self, i, value):
+        self._validate_memory(i)
+        self.memory[i] = value
+
+    def __delitem__(self, i):
+        raise Exception("Not Implemented")
+
+    def __iter__(self):
+        raise Exception("Not Implemented")
+
+    def __len__(self):
+        return len(self.memory)
 
     # Grows the memory as needed when references are made outside of the existing memory space
     def _validate_memory(self, position):
         if position >= len(self.memory):
             self.memory = list(self.memory) + [int(x) for x in '0' * (position - len(self.memory) + 1)]
 
-    def _read_memory(self, position):
-        self._validate_memory(position)
-        return self.memory[position] 
+
+class Computer(object):
+
+    def __init__(self, memory):
+        # We always copy the passed-in memory so that we never harm the caller
+        self.memory = Memory(memory)
+        self.outputs = []
+        self.i = 0
+        self.state = State.INIT
+        self.trace = False
+        self._relative_base = 0
 
     def _next_instruction(self):
-        instruction = self._read_memory(self.i)
+        instruction = self.memory[self.i]
         modes, opcode = divmod(instruction, 100)
         modes = [int(x) for x in reversed(str(modes))]
         # print (f'Modes: {modes}')
@@ -52,17 +71,17 @@ class Computer(object):
         return 0
 
     def _get_parameter(self):
-        value = self._read_memory(self.i)
+        value = self.memory[self.i]
         mode = self._next_mode()
 
         # Position Mode
         if mode == 0:
-            value = self._read_memory(value)
+            value = self.memory[value]
         # Immediate Mode
         elif mode == 1:
             pass
         elif mode == 2:
-            value = self._read_memory(self._relative_base + value)
+            value = self.memory[self._relative_base + value]
         else:
             raise Exception(f"Invalid Mode: {mode}")
 
@@ -70,7 +89,7 @@ class Computer(object):
         return value
 
     def _get_dest_parameter(self):
-        value = self._read_memory(self.i)
+        value = self.memory[self.i]
         mode = self._next_mode() # Throw away
         if mode == 1:
             raise Exception(f"Mode for get dest parameter {mode}")
@@ -78,7 +97,6 @@ class Computer(object):
 
         value += (self._relative_base if mode == 2 else 0)
         
-        self._validate_memory(value)
         return value
 
     def safe_execute(self, inputs=None):
