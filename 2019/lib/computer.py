@@ -15,22 +15,22 @@ class State(Enum):
 
 class Memory(MutableMapping):
     def __init__(self, memory):
-        self._SEGMENT_SIZE = 16
-        segments = [list(memory[i:i+self._SEGMENT_SIZE]) for i in range(0, len(memory), self._SEGMENT_SIZE)]
+        self._PAGE_SIZE = 16
+        pages = [list(memory[i:i+self._PAGE_SIZE]) for i in range(0, len(memory), self._PAGE_SIZE)]
 
-        self.memory = dict(zip(range(0, len(segments)), segments))
+        self.memory = dict(zip(range(0, len(pages)), pages))
 
     def __getitem__(self, i):
         self._validate_memory(i)
 
-        segment, offset = divmod(i, self._SEGMENT_SIZE)
-        return self.memory[segment][offset]
+        page, offset = divmod(i, self._PAGE_SIZE)
+        return self.memory[page][offset]
 
     def __setitem__(self, i, value):
         self._validate_memory(i)
 
-        segment, offset = divmod(i, self._SEGMENT_SIZE)
-        self.memory[segment][offset] = value
+        page, offset = divmod(i, self._PAGE_SIZE)
+        self.memory[page][offset] = value
 
     def __delitem__(self, i):
         raise Exception("Not Implemented")
@@ -39,22 +39,22 @@ class Memory(MutableMapping):
         raise Exception("Not Implemented")
 
     def __len__(self):
-        return sum([len(x) for x in self.memory])
+        raise Exception("Not Implemented -- difficult concept")
 
     def print(self):
         for index in sorted(self.memory):
-            segment = self.memory[index]
-            print(f'{index}: {segment}')
+            page = self.memory[index]
+            print(f'{index}: {page}')
 
     # Grows the memory as needed when references are made outside of the existing memory space
     def _validate_memory(self, position):
-        segment, offset = divmod(position, self._SEGMENT_SIZE)
-        if segment not in self.memory:
-            self.memory[segment] = [int(x) for x in '0' * self._SEGMENT_SIZE]
+        page, offset = divmod(position, self._PAGE_SIZE)
+        if page not in self.memory:
+            self.memory[page] = [int(x) for x in '0' * self._PAGE_SIZE]
 
-        # If the segment does not include the specific byte, expand the segment fully
-        elif offset >= len(self.memory[segment]):
-            self.memory[segment] = list(self.memory[segment]) + [int(x) for x in '0' * (self._SEGMENT_SIZE - len(self.memory[segment]))]
+        # If the page does not include the specific byte, expand the page fully
+        elif offset >= len(self.memory[page]):
+            self.memory[page] = list(self.memory[page]) + [int(x) for x in '0' * (self._PAGE_SIZE - len(self.memory[page]))]
 
 
 class Computer(object):
