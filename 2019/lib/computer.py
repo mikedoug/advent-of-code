@@ -16,11 +16,12 @@ class Computer(object):
 
     def __init__(self, memory):
         # We always copy the passed-in memory so that we never harm the caller
-        self.memory = list(memory)
+        self.memory = list(memory) + [int(x) for x in '0' * 5000]
         self.outputs = []
         self.i = 0
         self.state = State.INIT
         self.trace = False
+        self._relative_base = 0
 
     def _next_instruction(self):
         instruction = self.memory[self.i]
@@ -51,6 +52,8 @@ class Computer(object):
         # Immediate Mode
         elif mode == 1:
             pass
+        elif mode == 2:
+            value = self.memory[self._relative_base + value]
         else:
             raise Exception(f"Invalid Mode: {mode}")
 
@@ -59,10 +62,12 @@ class Computer(object):
 
     def _get_dest_parameter(self):
         value = self.memory[self.i]
-        self._next_mode() # Throw away
+        mode = self._next_mode() # Throw away
+        if mode == 1:
+            raise Exception(f"Mode for get dest parameter {mode}")
         self.i += 1
 
-        return value
+        return value + (self._relative_base if mode == 2 else 0)
 
     def safe_execute(self, inputs=None):
         try:
@@ -92,9 +97,11 @@ class Computer(object):
                 parameter2 = self._get_parameter()
                 dest = self._get_dest_parameter()
 
+                if self.trace:
+                    print(f"vvv {parameter1} + {parameter2} = {self.memory[dest]} --> {dest}")
                 self.memory[dest] = parameter1 + parameter2
                 if self.trace:
-                    print(f"{parameter1} + {parameter2} = {self.memory[dest]} --> {dest}")
+                    print(f"--- {parameter1} + {parameter2} = {self.memory[dest]} --> {dest}")
 
             # MULTIPLY
             elif opcode == 2:
@@ -133,6 +140,8 @@ class Computer(object):
                 if inputs is None:
                     print(f'OUTPUT: {value}')
 
+                if self.trace:
+                    print(f"Adding output: {value}")
                 self.outputs.append(value)
 
             # Opcode 5 is jump-if-true: if the first parameter is non-zero,
@@ -177,7 +186,17 @@ class Computer(object):
 
                 self.memory[dest] = 1 if parameter1 == parameter2 else 0
 
+            # Opcode 9 adjusts the relative base by the value of its only parameter.
+            # The relative base increases (or decreases, if the value is negative) by
+            # the value of the parameter.
+            elif opcode == 9:
+                parameter1 = self._get_parameter()
+
+                if self.trace:
+                    print(f"Increment relative base by {parameter1} now {self._relative_base + parameter1}")
+                self._relative_base += parameter1
             else:
                 raise Exception(f'Invalid Op: {opcode}')
 
         return self.outputs
+
