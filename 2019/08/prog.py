@@ -12,9 +12,8 @@ class LayeredImage(object):
         for i in range(self._rows * self._columns):
             for layer in self.layers:
                 if layer[i] != '2':
-                    picture.append( {'0': ' ', '1': 'X'}[layer[i]] )
+                    picture.append( {'0': ' ', '1': u'\u2588'}[layer[i]] )
                     break
-
         picture = "".join(picture)
 
         return [ picture[i:i+self._columns] for i in range(0, self._rows * self._columns, self._columns) ]
