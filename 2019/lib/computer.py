@@ -20,16 +20,16 @@ class Memory(MutableMapping):
 
         self.memory = dict(zip(range(0, len(pages)), pages))
 
-    def __getitem__(self, i):
-        self._validate_memory(i)
+    def __getitem__(self, position):
+        self._validate_memory(position)
 
-        page, offset = divmod(i, self._PAGE_SIZE)
+        page, offset = divmod(position, self._PAGE_SIZE)
         return self.memory[page][offset]
 
-    def __setitem__(self, i, value):
-        self._validate_memory(i)
+    def __setitem__(self, position, value):
+        self._validate_memory(position)
 
-        page, offset = divmod(i, self._PAGE_SIZE)
+        page, offset = divmod(position, self._PAGE_SIZE)
         self.memory[page][offset] = value
 
     def __delitem__(self, i):
@@ -42,9 +42,8 @@ class Memory(MutableMapping):
         raise Exception("Not Implemented -- difficult concept")
 
     def print(self):
-        for index in sorted(self.memory):
-            page = self.memory[index]
-            print(f'{index}: {page}')
+        for index, page in sorted(self.memory.items(), key=lambda x: x[0]):
+            print(f'{index:10}: {page}')
 
     # Grows the memory as needed when references are made outside of the existing memory space
     def _validate_memory(self, position):
