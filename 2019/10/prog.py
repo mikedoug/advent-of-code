@@ -46,6 +46,7 @@ def find_visible(fieldset, point):
     return visibleset
     # print(f'{point} has {fieldset[point]} visible')
 
+# get_angle from: https://stackoverflow.com/questions/13226038/calculating-angle-between-two-vectors-in-python
 def get_angle(p0, p1=np.array([0,0]), p2=None):
     ''' compute angle (in degrees) for p0p1p2 corner
     Inputs:
@@ -58,6 +59,30 @@ def get_angle(p0, p1=np.array([0,0]), p2=None):
 
     angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
     return np.degrees(angle) + 180.0
+
+
+def destroy(fieldset, station):
+    fieldset = list(fieldset)
+
+    start = 1
+    iteration = 1
+    while len(fieldset) > 1:
+        print(f'PASS: {iteration}')
+        visiblelist = find_visible(fieldset, station)
+
+        angles = {}
+        for point in visiblelist:
+            angle = get_angle( (station[0], station[1] + 50), station, point)
+            angles[point] = angle if angle != 360 else 0.0
+
+            fieldset.remove(point)
+
+        for i,(point,angle) in enumerate(sorted(angles.items(), key=lambda x: x[1])):
+            print(f'  {i+start:4}: {point} angle = {angle}')
+        
+        start += len(visiblelist)
+        iteration += 1
+
 
 def main():
     # Read the field
@@ -77,17 +102,9 @@ def main():
         fieldset[point] = find_visible(fieldset, point)
 
     station, visiblelist = max(fieldset.items(), key=lambda x: len(x[1]))
+    print(f'Total asteroids: {len(fieldset)}')
     print(f'Step One: {station} length = {len(visiblelist)}')
-    print(visiblelist)
     print()
 
-    angles = {}
-    for point in visiblelist:
-        angle = get_angle( (station[0], station[1] + 50), station, point)
-        angles[point] = angle if angle != 360 else 0.0
-
-    i = 1
-    for point,angle in sorted(angles.items(), key=lambda x: x[1]):
-        print(f'  {i:4} {point} angle = {angle}')
-        i += 1
+    destroy(fieldset, station)
 main()
