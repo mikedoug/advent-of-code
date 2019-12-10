@@ -1,5 +1,4 @@
 import math
-import numpy as np
 
 # Given three colinear points p, q, r, the function checks if 
 # point q lies on line segment 'pr' 
@@ -35,30 +34,13 @@ def find_visible(fieldset, point):
 
             if orientation(point, test, dest) == 0:
                 if onSegment(point, test, dest):
-                    # print(f'{point} {test} {dest} OBSCURED')
                     visible = False
                     break
 
         if visible:
-            # print(f'                                     {point} {test} {dest} VISIBLE')
             visibleset.append(dest)
 
     return visibleset
-    # print(f'{point} has {fieldset[point]} visible')
-
-# get_angle from: https://stackoverflow.com/questions/13226038/calculating-angle-between-two-vectors-in-python
-def get_angle(p0, p1=np.array([0,0]), p2=None):
-    ''' compute angle (in degrees) for p0p1p2 corner
-    Inputs:
-        p0,p1,p2 - points in the form of [x,y]
-    '''
-    if p2 is None:
-        p2 = p1 + np.array([1, 0])
-    v0 = np.array(p0) - np.array(p1)
-    v1 = np.array(p2) - np.array(p1)
-
-    angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
-    return np.degrees(angle) + 180.0
 
 
 def destroy(fieldset, station):
@@ -72,8 +54,9 @@ def destroy(fieldset, station):
 
         angles = {}
         for point in visiblelist:
-            angle = get_angle( (station[0], station[1] + 50), station, point)
-            angles[point] = angle if angle != 360 else 0.0
+            angle = math.degrees(math.atan2(point[1] - station[1], point[0] - station[0])) + 90
+            angle = angle + 360 if angle < 0 else angle
+            angles[point] = angle # if angle != 360 else 0.0
 
             fieldset.remove(point)
 
