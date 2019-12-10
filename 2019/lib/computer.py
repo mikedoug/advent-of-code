@@ -2,16 +2,11 @@ import sys
 from collections.abc import MutableMapping
 from enum import Enum
 
-class NeedInput(Exception):
-    pass
-
-
 class State(Enum):
     INIT = 1  # The computer has been initialized, but not yet executed
     LIVE = 2  # The computer program is actively running
     WAIT = 3  # The computer is waiting for more inputs
     HALT = 99 # The computer program has halted
-
 
 class Memory(MutableMapping):
     def __init__(self, memory):
@@ -115,27 +110,16 @@ class Computer(object):
         
         return value
 
-    def safe_execute(self, inputs=None):
-        try:
-            return self.execute(inputs)
-        except NeedInput:
-            return None
-
     def execute(self, inputs=None):
         if self.state in [State.INIT, State.WAIT]:
             self.state = State.LIVE
         else:
             raise Exception(f"Attempting to execute program in invalid state: {self.state}")
 
-        while True:
+        while self.state == State.LIVE:
             # print(f'I: {self.i}')
             # print(self.memory)
             opcode = self._next_instruction()
-
-            # Terminate
-            if opcode == 99:
-                self.state = State.HALT
-                break
 
             # ADD
             if opcode == 1:
@@ -167,15 +151,14 @@ class Computer(object):
                 dest = self._get_dest_parameter()
                 if inputs is None:
                     print("Enter value:")
-                    value = int(sys.stdin.readline().rstrip())
+                    self.memory[dest] = int(sys.stdin.readline().rstrip())
                 else:
                     if len(inputs) == 0:
                         self.i -= 2
                         self.state = State.WAIT
-                        raise NeedInput("Out of input!")
-                    value = inputs.pop(0)
-
-                self.memory[dest] = value
+                        # raise NeedInput("Out of input!")
+                    else:
+                        self.memory[dest] = inputs.pop(0)
 
             # Opcode 4 outputs the value of its only parameter. For example,
             # the instruction 4,50 would output the value at address 50.
@@ -241,8 +224,14 @@ class Computer(object):
                 if self.trace:
                     print(f"Increment relative base by {parameter1} now {self._relative_base + parameter1}")
                 self._relative_base += parameter1
-            else:
-                raise Exception(f'Invalid Op: {opcode}')
 
-        return self.outputs
+            # Terminate
+            elif opcode == 99:
+                self.state = State.HALT
+
+            # Invalid Opcode
+            else:
+                raise Exception(f'Invalid Opcode: {opcode}')
+
+        return self.outputs if self.state == State.HALT else None
 
