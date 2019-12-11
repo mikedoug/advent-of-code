@@ -41,14 +41,14 @@ def feedback_loop(phases):
     programs = []
     for phase in phases:
         program = computer.Computer(software)
-        program.safe_execute([phase])
+        program.execute([phase])
 
         programs.append(program)
 
     input = 0
     while True:
         for program in programs:
-            program.safe_execute([input])
+            program.execute([input])
             input = program.outputs[-1]
 
         if programs[-1].state == computer.State.HALT:

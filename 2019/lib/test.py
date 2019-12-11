@@ -40,9 +40,9 @@ class TestComputer(unittest.TestCase):
 
         program = computer.Computer([3,11,3,12,2,11,12,11,4,11,99,0,0])
         self.assertEqual(program.state, computer.State.INIT)
-        self.assertEqual(program.safe_execute([2]), None)
+        self.assertEqual(program.execute([2]), None)
         self.assertEqual(program.state, computer.State.WAIT)
-        self.assertEqual(program.safe_execute([3]), [6])
+        self.assertEqual(program.execute([3]), [6])
         self.assertEqual(program.state, computer.State.HALT)
 
         for i in range(1000):
