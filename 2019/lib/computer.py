@@ -43,7 +43,7 @@ class Memory(MutableMapping):
 
     def print(self):
         for index, page in sorted(self.memory.items(), key=lambda x: x[0]):
-            print(f'{index:10}: {page}')
+            print(f'{index * self._PAGE_SIZE:10}: {page}')
 
     # Grows the memory as needed when references are made outside of the existing memory space
     def _validate_memory(self, position):
@@ -128,13 +128,15 @@ class Computer(object):
             raise Exception(f"Attempting to execute program in invalid state: {self.state}")
 
         while True:
-            # print(f'I: {self.i}')
-            # print(self.memory)
+            trace_i = self.i
+
             opcode = self._next_instruction()
 
             # Terminate
             if opcode == 99:
                 self.state = State.HALT
+                if self.trace:
+                    print(f"[{trace_i}] TERMINATE")
                 break
 
             # ADD
@@ -143,11 +145,9 @@ class Computer(object):
                 parameter2 = self._get_parameter()
                 dest = self._get_dest_parameter()
 
-                if self.trace:
-                    print(f"vvv {parameter1} + {parameter2} = {self.memory[dest]} --> {dest}")
                 self.memory[dest] = parameter1 + parameter2
                 if self.trace:
-                    print(f"--- {parameter1} + {parameter2} = {self.memory[dest]} --> {dest}")
+                    print(f"[{trace_i}] ADD {parameter1} + {parameter2} = {self.memory[dest]} --> {dest}")
 
             # MULTIPLY
             elif opcode == 2:
@@ -157,7 +157,7 @@ class Computer(object):
 
                 self.memory[dest] = parameter1 * parameter2
                 if self.trace:
-                    print(f"{parameter1} * {parameter2} = {self.memory[dest]} --> {dest}")
+                    print(f"[{trace_i}] MUL {parameter1} * {parameter2} = {self.memory[dest]} --> {dest}")
 
             # Opcode 3 takes a single integer as input and saves it to the
             # address given by its only parameter. For example, the
@@ -175,6 +175,9 @@ class Computer(object):
                         raise NeedInput("Out of input!")
                     value = inputs.pop(0)
 
+                    if self.trace:
+                        print(f"[{trace_i}] INPUT {value} --> {dest}")
+
                 self.memory[dest] = value
 
             # Opcode 4 outputs the value of its only parameter. For example,
@@ -187,7 +190,8 @@ class Computer(object):
                     print(f'OUTPUT: {value}')
 
                 if self.trace:
-                    print(f"Adding output: {value}")
+                    print(f"[{trace_i}] OUTPUT {value}")
+
                 self.outputs.append(value)
 
             # Opcode 5 is jump-if-true: if the first parameter is non-zero,
@@ -198,8 +202,10 @@ class Computer(object):
                 parameter2 = self._get_parameter()
 
                 if self.trace:
-                    print(f'if({parameter1}) jump to {parameter2}')
+                    print(f"[{trace_i}] JUMP-IF-TRUE {parameter1} -> {parameter2}")
                 if parameter1 != 0:
+                    if self.trace:
+                        print(f"[{trace_i}] JUMPED -> {parameter2}")
                     self.i = parameter2
 
             # Opcode 6 is jump-if-false: if the first parameter is zero,
@@ -209,7 +215,11 @@ class Computer(object):
                 parameter1 = self._get_parameter()
                 parameter2 = self._get_parameter()
 
+                if self.trace:
+                    print(f"[{trace_i}] JUMP-IF-FALSE {parameter1} -> {parameter2}")
                 if parameter1 == 0:
+                    if self.trace:
+                        print(f"[{trace_i}] JUMPED -> {parameter2}")
                     self.i = parameter2
 
             # Opcode 7 is less than: if the first parameter is less than the
@@ -222,6 +232,9 @@ class Computer(object):
 
                 self.memory[dest] = 1 if parameter1 < parameter2 else 0
 
+                if self.trace:
+                    print(f"[{trace_i}] IS-LESS-THAN {parameter1} < {parameter2} = {self.memory[dest]} --> {dest}")
+
             # Opcode 8 is equals: if the first parameter is equal to the second
             # parameter, it stores 1 in the position given by the third parameter.
             # Otherwise, it stores 0.
@@ -232,6 +245,9 @@ class Computer(object):
 
                 self.memory[dest] = 1 if parameter1 == parameter2 else 0
 
+                if self.trace:
+                    print(f"[{trace_i}] IS-EQUAL {parameter1} == {parameter2} = {self.memory[dest]} --> {dest}")
+
             # Opcode 9 adjusts the relative base by the value of its only parameter.
             # The relative base increases (or decreases, if the value is negative) by
             # the value of the parameter.
@@ -239,7 +255,7 @@ class Computer(object):
                 parameter1 = self._get_parameter()
 
                 if self.trace:
-                    print(f"Increment relative base by {parameter1} now {self._relative_base + parameter1}")
+                    print(f"[{trace_i}] RELBASE-CHANGE {parameter1} --> {self._relative_base + parameter1}")
                 self._relative_base += parameter1
             else:
                 raise Exception(f'Invalid Op: {opcode}')
