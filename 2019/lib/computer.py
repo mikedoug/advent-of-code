@@ -66,19 +66,15 @@ class Computer(object):
         instruction = self.memory[self.i]
         modes, opcode = divmod(instruction, 100)
         modes = [int(x) for x in reversed(str(modes))]
-        # print (f'Modes: {modes}')
-        # print (f'Opcode: {opcode}')
 
-        self.current_parameter_position = 0
-        self.current_parameter_modes = modes
+        self._parameter_modes = modes
         self.i += 1
 
         return opcode
 
     def _next_mode(self):
-        if len(self.current_parameter_modes) > 0:
-            return self.current_parameter_modes.pop(0)
-
+        if len(self._parameter_modes) > 0:
+            return self._parameter_modes.pop(0)
         return 0
 
     def _get_parameter(self):
