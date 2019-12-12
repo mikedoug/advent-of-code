@@ -1,12 +1,6 @@
 BLACK = 0
 WHITE = 1
 
-UP = 0
-RIGHT = 1
-DOWN = 2
-LEFT = 3
-
-
 import sys
 import pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent / 'lib'))
