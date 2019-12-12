@@ -49,9 +49,9 @@ def feedback_loop(phases):
     while True:
         for program in programs:
             program.execute([input])
-            input = program.outputs[-1]
+            input = program.get_outputs()[-1]
 
-        if programs[-1].state == computer.State.HALT:
+        if programs[-1].get_state() == computer.State.HALT:
             return input
 
 outputs = []

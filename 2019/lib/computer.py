@@ -59,19 +59,19 @@ class Computer(object):
     def __init__(self, memory):
         # We always copy the passed-in memory so that we never harm the caller
         self.memory = Memory(memory)
-        self.outputs = []
-        self.i = 0
-        self.state = State.INIT
+        self._outputs = []
+        self._i = 0
+        self._state = State.INIT
         self.trace = False
         self._relative_base = 0
 
     def _next_instruction(self):
-        instruction = self.memory[self.i]
+        instruction = self.memory[self._i]
         modes, opcode = divmod(instruction, 100)
         modes = [int(x) for x in reversed(str(modes))]
 
         self._parameter_modes = modes
-        self.i += 1
+        self._i += 1
 
         return opcode
 
@@ -81,7 +81,7 @@ class Computer(object):
         return 0
 
     def _get_parameter(self):
-        value = self.memory[self.i]
+        value = self.memory[self._i]
         mode = self._next_mode()
 
         # Position Mode
@@ -95,28 +95,28 @@ class Computer(object):
         else:
             raise Exception(f"Invalid Mode: {mode}")
 
-        self.i += 1
+        self._i += 1
         return value
 
     def _get_dest_parameter(self):
-        value = self.memory[self.i]
+        value = self.memory[self._i]
         mode = self._next_mode() # Throw away
         if mode == 1:
             raise Exception(f"Mode for get dest parameter {mode}")
-        self.i += 1
+        self._i += 1
 
         value += (self._relative_base if mode == 2 else 0)
         
         return value
 
     def execute(self, inputs=None):
-        if self.state in [State.INIT, State.WAIT]:
-            self.state = State.LIVE
+        if self._state in [State.INIT, State.WAIT]:
+            self._state = State.LIVE
         else:
-            raise Exception(f"Attempting to execute program in invalid state: {self.state}")
+            raise Exception(f"Attempting to execute program in invalid state: {self._state}")
 
-        while self.state == State.LIVE:
-            trace_i = self.i
+        while self._state == State.LIVE:
+            trace_i = self._i
             opcode = self._next_instruction()
 
             # ADD
@@ -150,8 +150,8 @@ class Computer(object):
                     self.memory[dest] = int(sys.stdin.readline().rstrip())
                 else:
                     if len(inputs) == 0:
-                        self.i -= 2
-                        self.state = State.WAIT
+                        self._i -= 2
+                        self._state = State.WAIT
                         # raise NeedInput("Out of input!")
                     else:
                         self.memory[dest] = inputs.pop(0)
@@ -171,7 +171,7 @@ class Computer(object):
                 if self.trace:
                     print(f"[{trace_i}] OUTPUT {value}")
 
-                self.outputs.append(value)
+                self._outputs.append(value)
 
             # Opcode 5 is jump-if-true: if the first parameter is non-zero,
             # it sets the instruction pointer to the value from the second
@@ -185,7 +185,7 @@ class Computer(object):
                 if parameter1 != 0:
                     if self.trace:
                         print(f"[{trace_i}] JUMPED -> {parameter2}")
-                    self.i = parameter2
+                    self._i = parameter2
 
             # Opcode 6 is jump-if-false: if the first parameter is zero,
             # it sets the instruction pointer to the value from the second
@@ -199,7 +199,7 @@ class Computer(object):
                 if parameter1 == 0:
                     if self.trace:
                         print(f"[{trace_i}] JUMPED -> {parameter2}")
-                    self.i = parameter2
+                    self._i = parameter2
 
             # Opcode 7 is less than: if the first parameter is less than the
             # second parameter, it stores 1 in the position given by the third
@@ -239,19 +239,19 @@ class Computer(object):
 
             # Terminate
             elif opcode == 99:
-                self.state = State.HALT
+                self._state = State.HALT
 
             # Invalid Opcode
             else:
                 raise Exception(f'Invalid Opcode: {opcode}')
 
-        return self.outputs if self.state == State.HALT else None
+        return self._outputs if self._state == State.HALT else None
 
     def get_outputs(self):
-        return list(self.outputs)
+        return list(self._outputs)
     
     def clear_outputs(self):
-        self.outputs = []
+        self._outputs = []
 
     def get_state(self):
-        return self.state
+        return self._state
