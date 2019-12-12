@@ -21,31 +21,22 @@ program = computer.Computer(code)
 # program.trace = True
 
 grid = {}
-x = 0
-y = 0
-facing = UP
+location = (0, 0)
+facing = -1j
 
 first = True
 
 while program.state != computer.State.HALT:
-    color = grid[(x,y)] if (x,y) in grid else WHITE if first else BLACK
+    color = grid[location] if location in grid else WHITE if first else BLACK
     first = False
     program.execute([color])
 
     new_color, turn = program.outputs
     program.outputs = []
 
-    grid[(x,y)] = new_color
-
-    facing = (facing + (3 if turn == 0 else 1)) % 4
-    if facing == UP:
-        y += 1
-    elif facing == DOWN:
-        y -= 1
-    elif facing == LEFT:
-        x -= 1
-    else:
-        x += 1
+    grid[location] = new_color
+    facing *= 1j if turn == 1 else -1j
+    location = (location[0] + int(facing.real), location[1] + int(facing.imag))
 
 print(f'Stage one: {len (grid)}')
 
@@ -58,11 +49,12 @@ maxx = max([x[0] for x in grid])
 maxy = max([x[1] for x in grid])
 
 print('Stage two:')
-for y in range(maxy, miny - 1, -1):
-    for x in range(minx-2, maxx+2):
+# for y in range(maxy, miny - 1, -1):
+for y in range(miny, maxy+1):
+    for x in range(minx, maxx+1):
         if (x,y) in grid and grid[(x,y)] == WHITE:
-            print("X", end="")
+            print("XX", end="")
         else:
-            print(" ", end="")
+            print("  ", end="")
 
     print()
