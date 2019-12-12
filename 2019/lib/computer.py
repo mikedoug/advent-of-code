@@ -247,3 +247,11 @@ class Computer(object):
 
         return self.outputs if self.state == State.HALT else None
 
+    def get_outputs(self):
+        return list(self.outputs)
+    
+    def clear_outputs(self):
+        self.outputs = []
+
+    def get_state(self):
+        return self.state

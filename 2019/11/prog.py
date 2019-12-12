@@ -14,19 +14,16 @@ with open("input.txt", "r") as f:
 program = computer.Computer(code)
 # program.trace = True
 
-grid = {}
+grid = {(0,0): WHITE}
 location = (0, 0)
 facing = -1j
 
-first = True
-
-while program.state != computer.State.HALT:
-    color = grid[location] if location in grid else WHITE if first else BLACK
-    first = False
+while program.get_state() != computer.State.HALT:
+    color = grid.get(location, BLACK)
     program.execute([color])
 
-    new_color, turn = program.outputs
-    program.outputs = []
+    new_color, turn = program.get_outputs()
+    program.clear_outputs()
 
     grid[location] = new_color
     facing *= 1j if turn == 1 else -1j
@@ -46,9 +43,8 @@ print('Stage two:')
 # for y in range(maxy, miny - 1, -1):
 for y in range(miny, maxy+1):
     for x in range(minx, maxx+1):
-        if (x,y) in grid and grid[(x,y)] == WHITE:
+        if grid.get((x,y), BLACK) == WHITE:
             print("XX", end="")
         else:
             print("  ", end="")
-
     print()

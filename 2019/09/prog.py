@@ -11,8 +11,8 @@ code = [1102,34463338,34463338,63,1007,63,34463338,63,1005,63,53,1102,3,1,1000,1
 # Step 1
 program = computer.Computer(code)
 program.execute([1])
-print(f'Step 1: {program.outputs}')
+print(f'Step 1: {program.get_outputs()}')
 
 program = computer.Computer(code)
 program.execute([2])
-print(f'Step 2: {program.outputs}')
+print(f'Step 2: {program.get_outputs()}')
