@@ -5,9 +5,9 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent / 'lib'))
 import computer # pylint: disable=import-error
 
 class Map(object):
-    def __init__(self):
+    def __init__(self, program):
         self.map = {(0,0): 'S'}
-        self.found = False
+        self.program = program
 
     def print(self):
         minx = min([x[0] for x in self.map.keys()])
@@ -24,24 +24,26 @@ class Map(object):
 
             print()
 
+    @classmethod
+    def _options_from_pos(clazz, pos):
+        return [
+            (1,(pos[0]-1, pos[1]), 2),
+            (2,(pos[0]+1, pos[1]), 1),
+            (3,(pos[0], pos[1]-1), 4),
+            (4,(pos[0], pos[1]+1), 3)
+        ]
+
     def mapit(self, pos=(0,0), undo=None):
-        while not self.found:
-            options = list(filter(
-                lambda x: x[1] not in self.map,
-                [
-                    (1,(pos[0]-1, pos[1]), 2),
-                    (2,(pos[0]+1, pos[1]), 1),
-                    (3,(pos[0], pos[1]-1), 4),
-                    (4,(pos[0], pos[1]+1), 3)
-                ]))
+        while True:
+            options = list(filter(lambda x: x[1] not in self.map, Map._options_from_pos(pos)))
 
             if len(options) == 0:
                 break
 
             dir = options[0]
-            program.execute([dir[0]])
-            output = program.get_outputs()[0]
-            program.clear_outputs()
+            self.program.execute([dir[0]])
+            output = self.program.get_outputs()[0]
+            self.program.clear_outputs()
 
             if output == 0:  # Wall
                 self.map[dir[1]] = '#'
@@ -54,9 +56,9 @@ class Map(object):
                 self.mapit(dir[1], dir[2])
 
         if undo is not None:
-            program.execute([undo])
-            output = program.get_outputs()[0]
-            program.clear_outputs()
+            self.program.execute([undo])
+            output = self.program.get_outputs()[0]
+            self.program.clear_outputs()
 
             if output != 1:
                 print(f"INVALID CODE {output}")
@@ -65,12 +67,8 @@ class Map(object):
     def findpath(self, pos=(0,0), undo=None, acc=0, path=[]):
         options = list(filter(
             lambda x: x[1] in self.map and x[1] not in path and self.map[x[1]] != '#',
-            [
-                (1,(pos[0]-1, pos[1]), 2),
-                (2,(pos[0]+1, pos[1]), 1),
-                (3,(pos[0], pos[1]-1), 4),
-                (4,(pos[0], pos[1]+1), 3)
-            ]))
+            Map._options_from_pos(pos)
+        ))
 
         lengths = []
         for dir in options:
@@ -85,14 +83,7 @@ class Map(object):
         if pos == None:
             pos = self.oxygen_position
 
-        options = filter(
-            lambda x: x[1] in self.map and x[1] not in path and self.map[x[1]] == ' ',
-            [
-                (1,(pos[0]-1, pos[1]), 2),
-                (2,(pos[0]+1, pos[1]), 1),
-                (3,(pos[0], pos[1]-1), 4),
-                (4,(pos[0], pos[1]+1), 3)
-            ])
+        options = filter(lambda x: x[1] in self.map and x[1] not in path and self.map[x[1]] == ' ', Map._options_from_pos(pos))
 
         lengths = [self.timeO2(dir[1], acc + 1, path + [pos]) for dir in options]
         return max(lengths) if len(lengths) > 0 else acc
@@ -101,9 +92,7 @@ class Map(object):
 with open("input.txt", "r") as f:
     code = [int(x) for x in f.readline().rstrip().split(',')]
 
-program = computer.Computer(code)
-
-map = Map()
+map = Map(computer.Computer(code))
 map.mapit()
 map.print()
 print(map.findpath())
