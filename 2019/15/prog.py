@@ -40,28 +40,29 @@ class Map(object):
             if len(options) == 0:
                 break
 
-            dir = options[0]
-            self.program.execute([dir[0]])
+            move_code, new_pos, undo_code = options[0]
+            self.program.execute([move_code])
             output = self.program.get_outputs()[0]
             self.program.clear_outputs()
 
             if output == 0:  # Wall
-                self.map[dir[1]] = '#'
+                self.map[new_pos] = '#'
+            elif output == 1:
+                self.map[new_pos] = ' '
+                self.mapit(new_pos, undo_code)
             elif output == 2:
-                self.map[dir[1]] = '*'
-                self.oxygen_position = dir[1]
-                self.mapit(dir[1], dir[2])
+                self.map[new_pos] = '*'
+                self.oxygen_position = new_pos
+                self.mapit(new_pos, undo_code)
             else:
-                self.map[dir[1]] = ' '
-                self.mapit(dir[1], dir[2])
+                raise Exception(f'Invalid response from program {output}')
 
         if undo is not None:
             self.program.execute([undo])
-            output = self.program.get_outputs()[0]
-            self.program.clear_outputs()
+            output = self.program.pop_output()
 
             if output != 1:
-                print(f"INVALID CODE {output}")
+                print(f"INVALID CODE ON UNDO{output}")
                 exit(-1)
 
     def findpath(self, pos=(0,0), undo=None, acc=0, path=[]):
@@ -71,10 +72,10 @@ class Map(object):
         ))
 
         lengths = []
-        for dir in options:
-            if self.map[dir[1]] == ' ':
-                lengths.append(self.findpath(dir[1], dir[2], acc + 1, path + [pos]))
-            elif self.map[dir[1]] == '*':
+        for _, new_pos, undo_code in options:
+            if self.map[new_pos] == ' ':
+                lengths.append(self.findpath(new_pos, undo_code, acc + 1, path + [pos]))
+            elif self.map[new_pos] == '*':
                 lengths.append(acc + 1)
                 
         return min(lengths) if len(lengths) > 0 else 9999999999999

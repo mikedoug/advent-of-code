@@ -253,5 +253,8 @@ class Computer(object):
     def clear_outputs(self):
         self._outputs = []
 
+    def pop_output(self):
+        return self._outputs.pop()
+
     def get_state(self):
         return self._state
