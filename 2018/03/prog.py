@@ -37,55 +37,34 @@ class Claim(object):
         return (f'#{self.id} @ {self.x},{self.y}: {self.w}x{self.h}: {self.x2} {self.y2}')
 
 
+def safe_remove(list, value):
+    try:
+        list.remove(value)
+    except:
+        pass
+
 with open("input.txt", "r") as f:
     lines = [x.strip() for x in f.readlines()]
 
 claims = [Claim(x) for x in lines]
+
+clean = [claim.id for claim in claims]
 
 overlapped = set()
 for i1, claim1 in enumerate(claims):
     for i2, claim2 in enumerate(claims):
         if i2 <= i1:
             continue
+
         overlap = claim1.intersect(claim2)
 
         if overlap is not None:
-            print (claim1)
-            print (claim2)
-            print (overlap)
-            print ()
+            safe_remove(clean, claim1.id)
+            safe_remove(clean, claim2.id)
             for x in range(overlap[0], overlap[2]+1):
                 for y in range(overlap[1], overlap[3]+1):
                     overlapped.add((x,y))
-        # Add points to the set
 
 
-print (overlapped)
 print (len(overlapped))
-
-
-
-
-
-
-
-# allx = []
-# [allx.extend([i.x, i.x2]) for i in claims]
-# ally = []
-# [ally.extend([i.y, i.y2]) for i in claims]
-# print (min(allx), max(allx))
-# print (min(ally), max(ally))
-
-# overlaps = 0
-# for x in range(min(allx), max(allx)+1):
-#     for y in range(min(ally), max(ally)):
-#         count = 0
-#         for c in claims:
-#             if c.contains(x, y):
-#                 count += 1
-#                 if count == 2:
-#                     overlaps += 1
-#                     break
-#         print (overlaps)
-
-# print(overlaps)
+print (clean)
