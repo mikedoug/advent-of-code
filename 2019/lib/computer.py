@@ -254,7 +254,7 @@ class Computer(object):
         self._outputs = []
 
     def pop_output(self):
-        return self._outputs.pop()
+        return self._outputs.pop(0)
 
     def get_state(self):
         return self._state
