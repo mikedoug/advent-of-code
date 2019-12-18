@@ -108,7 +108,7 @@ class Tracker(object):
 
         return results
 
-def multicount(partial, full):
+def multicount_splatter(partial, full):
     splatted = list(full)
     skip_until = None
     count = 0
@@ -122,31 +122,28 @@ def multicount(partial, full):
 
     return (count,splatted)
 
-# print (multicount(list("abc"), list("abcbcdabcdabc")))
-
-def decompose_analysis(startpath):
-    possible = [[startpath,[]]]
+def decompose_analysis(startpath, maxsegments=3):
+    states = [[startpath,[]]]
     complete = []
-    while len(possible) > 0:
-        state = possible.pop(0)
-        path = state[0]
+    while len(states) > 0:
+        path, history = states.pop(0)
 
+        # Always start with the first non-None entry
         start = list(filter(lambda x: x[1] is not None, enumerate(path))).pop(0)[0]
-        max = len(path)//2
 
-        for i in range(1,max):
-            if path[start+i-1] is None:
+        # Find all sub-strings starting from there that repeat, and enqueue it for futher analysis
+        for i in range(1,len(path)):
+            search = path[start:start+i]
+            if search[-1] is None:
                 break
 
-            search = path[start:start+i]
-            (count, filtered) = multicount(search, path)
+            (count, filtered) = multicount_splatter(search, path)
             if count > 1:
                 if any(filter(lambda x: x is not None, filtered)):
-                    # We only recurse again if the next iteration won't take us over 3 path segments
-                    if len(state[1]) < 2:
-                        possible.append([filtered, state[1] + [search]])
+                    if len(history) < maxsegments - 1:
+                        states.append([filtered, history + [search]])
                 else:
-                    complete.append(state[1] + [search])
+                    complete.append(history + [search])
 
     return complete
 
@@ -155,13 +152,17 @@ def decompose(startpath):
     if len(options) == 0:
         raise Exception("Solution not found...")
 
+    print ("OPTIONS:")
+    for option in options:
+        print (f'{len(option):4} {option}')
+    print()
+
     solution = options[0]
     print(solution)
 
     path = list(startpath)
     replacements = list('ABC')
     for i, entry in enumerate(solution):
-        # (count, path) = multicount(entry, path, replace_with=replacements[i])
         j = 0
         while j < len(path):
             if path[j:j+len(entry)] == entry:

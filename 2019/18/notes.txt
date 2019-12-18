@@ -1,0 +1,10 @@
+1. Flood fill the map and build a graph showing keys and doors.
+  -- Nodes have all keys available at that point
+  -- lines are the doors that separate areas
+
+  -- Flood fill by flooding the first compartment (no door breakage) to build node 1
+  -- Then iterate on all doors found to build the first children.  Then iterate....
+    
+2. Make another graph with weights between the nodes that are available (redo this every time a door goes away)
+  - note if the destination point you are searching is above/below left/right use that to guide you in the middle
+  - ... I'm not sure
