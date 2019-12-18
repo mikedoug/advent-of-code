@@ -60,6 +60,7 @@ class Tracker(object):
         pos = self.robot
         last_dir = 'UP'
 
+        results = []
         print(f'START {pos}')
         while True:
             if last_dir != 'RIGHT' and self.memory.get((pos[0]-1,pos[1]), '&') == '#':
@@ -69,6 +70,7 @@ class Tracker(object):
                         break
                 turn = '<==' if last_dir == 'UP' else '==>'
                 print(f'{turn} {i} -- LEFT {pos}')
+                results.append(('L' if last_dir == 'UP' else 'R', i))
                 pos = (pos[0] - i, pos[1])
                 last_dir = 'LEFT'
             elif last_dir != 'LEFT' and self.memory.get((pos[0]+1,pos[1]), '&') == '#':
@@ -78,6 +80,7 @@ class Tracker(object):
                         break
                 turn = '==>' if last_dir == 'UP' else '<=='
                 print(f'{turn} {i} -- RIGHT {pos}')
+                results.append(('R' if last_dir == 'UP' else 'L', i))
                 pos = (pos[0] + i, pos[1])
                 last_dir = 'RIGHT'
             elif last_dir != 'DOWN' and self.memory.get((pos[0],pos[1]-1), '&') == '#':
@@ -87,6 +90,7 @@ class Tracker(object):
                         break
                 turn = '==>' if last_dir == 'LEFT' else '<=='
                 print(f'{turn} {i} -- UP {pos}')
+                results.append(('R' if last_dir == 'LEFT' else 'L', i))
                 pos = (pos[0], pos[1] - i)
                 last_dir = 'UP'
             elif last_dir != 'UP' and self.memory.get((pos[0],pos[1]+1), '&') == '#':
@@ -96,10 +100,79 @@ class Tracker(object):
                         break
                 turn = '==>' if last_dir == 'RIGHT' else '<=='
                 print(f'{turn} {i} -- DOWN {pos}')
+                results.append(('R' if last_dir == 'RIGHT' else 'L', i))
                 pos = (pos[0], pos[1] + i)
                 last_dir = 'DOWN'
             else:
                 break
+
+        return results
+
+def multicount(partial, full):
+    splatted = list(full)
+    skip_until = None
+    count = 0
+    for i in range(len(full)-len(partial)+1):
+        if skip_until is not None and i < skip_until:
+            continue
+        if full[i:i+len(partial)] == partial:
+            count += 1
+            skip_until = i + len(partial)
+            splatted[i:i+len(partial)] = [None] * len(partial)
+
+    return (count,splatted)
+
+# print (multicount(list("abc"), list("abcbcdabcdabc")))
+
+def decompose_analysis(startpath):
+    possible = [[startpath,[]]]
+    complete = []
+    while len(possible) > 0:
+        state = possible.pop(0)
+        path = state[0]
+
+        start = list(filter(lambda x: x[1] is not None, enumerate(path))).pop(0)[0]
+        max = len(path)//2
+
+        for i in range(1,max):
+            if path[start+i-1] is None:
+                break
+
+            search = path[start:start+i]
+            (count, filtered) = multicount(search, path)
+            if count > 1:
+                if any(filter(lambda x: x is not None, filtered)):
+                    # We only recurse again if the next iteration won't take us over 3 path segments
+                    if len(state[1]) < 2:
+                        possible.append([filtered, state[1] + [search]])
+                else:
+                    complete.append(state[1] + [search])
+
+    return complete
+
+def decompose(startpath):
+    options = decompose_analysis(startpath)
+    if len(options) == 0:
+        raise Exception("Solution not found...")
+
+    solution = options[0]
+    print(solution)
+
+    path = list(startpath)
+    replacements = list('ABC')
+    for i, entry in enumerate(solution):
+        # (count, path) = multicount(entry, path, replace_with=replacements[i])
+        j = 0
+        while j < len(path):
+            if path[j:j+len(entry)] == entry:
+                path[j:j+len(entry)] = replacements[i]
+            j += 1
+    results=[','.join(path)]
+
+    for entry in solution:
+        results.append(','.join([str(item) for sublist in entry for item in sublist]))
+
+    return results
 
 
 tracker = Tracker(program)
@@ -109,7 +182,8 @@ intersections = tracker.find_intersections()
 
 print(sum([x[0] * x[1] for x in intersections]))
 
-tracker.walk()
+path = tracker.walk()
+path_results = decompose(path)
 
 code[0] = 2
 program = computer.Computer(code)
@@ -121,13 +195,7 @@ def mapit(command):
 
     return response
 
-commands = mapit([
-    "A,B,A,C,A,B,C,A,B,C",
-    "R,8,R,10,R,10",
-    "R,4,R,8,R,10,R,12",
-    "R,12,R,4,L,12,L,12",
-    "n"
-])
+commands = mapit(path_results + ['n'])
 
 program.execute([])
 
