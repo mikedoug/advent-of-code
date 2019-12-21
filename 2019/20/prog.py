@@ -1,5 +1,5 @@
 import copy
-import msvcrt
+# import msvcrt
 import sys
 
 class Portal(object):
@@ -44,7 +44,7 @@ class Exit(object):
     pass
 
 class Maze(object):
-    def __init__(self, lines, enable_layers=False):
+    def __init__(self, lines, enable_layers=False, enable_jumping=True):
         self.maze = []
 
         for line in lines:
@@ -60,6 +60,9 @@ class Maze(object):
 
         self.win = False
         self.moves = 0
+
+        self.enable_jumping = enable_jumping
+        self.found_jump = None
 
         self.at = tuple(self.entry)
         self.jump_path = [(0,self.at)]
@@ -169,19 +172,23 @@ class Maze(object):
 
         dest = None
         if isinstance(nextlocation, Jump):
-            dest = nextlocation.destination
-            self.jump_path.append((self.layer, nextlocation.tag, nextlocation.is_outer))
+            if self.enable_jumping:
+                dest = nextlocation.destination
+                self.jump_path.append((self.layer, nextlocation.tag, nextlocation.is_outer))
 
-            if self.enable_layers:
-                if nextlocation.is_outer:
-                    self.layer -= 1
-                else:
-                    self.layer += 1
+                if self.enable_layers:
+                    if nextlocation.is_outer:
+                        self.layer -= 1
+                    else:
+                        self.layer += 1
+            else:
+                self.found_jump = nextlocation
+                self.moves += 1
 
             # print (f"You used portal {nextlocation.tag}")
         elif isinstance(nextlocation, Exit):
             self.win = True
-        elif nextlocation != '#':
+        elif nextlocation != '#' and not isinstance(nextlocation, Entry):
             dest = moveto
             self.jump_path.append((self.layer, dest))
 
@@ -191,11 +198,24 @@ class Maze(object):
             self.at = dest
             self.maze[self.at[0]][self.at[1]] = 'o'
 
+    def start_at(self, dest):
+        self.maze[self.at[0]][self.at[1]] = '.'
+        self.at = dest
+        self.maze[self.at[0]][self.at[1]] = 'o'
+        self.jump_path = [(0,self.at)]
+
     def reject_location(self, location, entity):
         if isinstance(entity, Jump):
+
+            # If jumping is not enabled, we don't have to worry about rejecting Jump points
+            # if not self.enable_jumping:
+            #     return False
+
             tag_path = list(map(lambda x: x, filter(lambda x: isinstance(x[1], str), self.jump_path)))
+
             if len(tag_path) > 0 and tag_path[-1][1] == entity.tag:
                 return True
+            return (self.layer, entity.tag) in self.jump_path
 
             # print (tag_path)
             # for i in range(len(tag_path)-1):
@@ -207,10 +227,7 @@ class Maze(object):
             #         print()
             #         return True
 
-            return (self.layer, entity.tag) in self.jump_path
-
         return (self.layer, location) in self.jump_path
-
 
     def available_moves(self):
         moves = []
@@ -233,6 +250,69 @@ class Maze(object):
             self.portals[tag] = Portal(tag)
 
         self.portals[tag].add(point, is_outer)
+
+def map_paths(srcmaze):
+    srcmaze.enable_layers = False
+    srcmaze.enable_jumping = False
+
+    results = {}  # {[start, inner bool]}{[end, inner bool]} = distance
+    for tag, portal in srcmaze.portals.items():
+        if tag == 'ZZ':
+            continue
+
+        for outer, point in enumerate(portal.points):
+            outer = 'outer' if outer == 0 else 'inner'
+
+            start_point = (point[2], point[3])
+            # print (f'{tag} {outer} {start_point}')
+
+            walkmaze = copy.deepcopy(srcmaze)
+            walkmaze.start_at(start_point)
+
+            queue = [walkmaze]
+            src_key = (tag, outer)
+
+            while len(queue) > 0:
+                walkmaze = queue.pop(0)
+
+                moves = walkmaze.available_moves()
+                dest_key = None
+                distance = None
+                if len(moves) == 1:
+                    # walkmaze.print()
+                    # print (walkmaze.jump_path)
+                    # print (moves[0])
+                    walkmaze.move(moves[0])
+                    # print (walkmaze.jump_path)
+                    # print()
+                    if walkmaze.win:
+                        dest_key = ('ZZ', 'outer')
+                        distance = walkmaze.moves
+                    elif walkmaze.found_jump is not None:
+                        dest_key = (walkmaze.found_jump.tag, 'outer' if walkmaze.found_jump.is_outer else 'inner')
+                        distance = walkmaze.moves
+                    else:
+                        queue.append(walkmaze)
+                else:
+                    for move in moves:
+                        newmaze = copy.deepcopy(walkmaze)
+                        newmaze.move(move)
+                        if newmaze.win:
+                            dest_key = ('ZZ', 'outer')
+                            distance = newmaze.moves
+                        elif newmaze.found_jump is not None:
+                            dest_key = (newmaze.found_jump.tag, 'outer' if newmaze.found_jump.is_outer else 'inner')
+                            distance = newmaze.moves
+                        else:
+                            queue.append(newmaze)
+
+                if dest_key is not None and distance > 1:
+                    results[src_key] = results[src_key] if src_key in results else {}
+                    results[src_key][dest_key] = distance
+                    # print (f"--- {src_key} -> {dest_key} = {distance}")
+
+    return results
+
 
 def solve(maze):
     queue = [maze]
@@ -275,7 +355,8 @@ def manual(maze):
         print(maze.jump_path)
         print(maze.available_moves())
 
-        x = msvcrt.getch()
+        # x = msvcrt.getch()
+        x = 'q'
         if x == b'q':
             exit(0)
         if x == b'w':
@@ -291,41 +372,162 @@ def manual(maze):
             print(f"You win! in {maze.moves} moves")
             exit(0)
 
+class PathWalker(object):
+    def __init__(self, paths, enable_layers):
+        self.paths = paths
+        self.location = ('AA', 'outer')
+        self.distance = 0
+        self.layer = 0
+        self.enable_layers = enable_layers
+        self.moves = 0
+        # self.history = []
 
-# def count_surrounding_walls(maze, rowi, coli):
-#     count=0
-#     for test in ((-1,0), (1,0), (0,-1), (0,1)):
-#         if maze[rowi+test[0]][coli+test[1]] == '#':
-#             count += 1
-#     return count
+    def nextSteps(self):
+        destinations = self.paths[self.location]
 
-# def simplify(lines):
-#     maze = []
-#     for line in lines:
-#         maze.append(list(line))    
+        results = []
+        for destination in destinations:
+            if self.enable_layers:
+                if self.layer == 0 and destination[0] != 'ZZ' and destination[1] == 'outer':
+                    continue
+                if self.layer != 0 and destination[0] == 'ZZ':
+                    continue
 
-#     while True:
-#         modified = False
+            newpw = copy.deepcopy(self)
+            newpw.moveTo(destination)
+            results.append(newpw)
+        return results
 
-#         for rowi, row in enumerate(maze):
-#             for coli, cell in enumerate(row):
-#                 if cell == '.' and count_surrounding_walls(maze, rowi, coli) == 3:
-#                     maze[rowi][coli] = '#'
-#                     modified = True
+    def moveTo(self, destination):
+        layer_distance = self.paths[self.location][destination]
+        self.layer += layer_distance[0]
+        self.distance += layer_distance[1]
+        # del self.paths[self.location][destination]
 
-#         if not modified:
-#             for row in maze:
-#                 print (''.join([str(x) for x in row]))            
-#             exit(0)
+        jumpto = (destination[0], 'outer' if destination[1] == 'inner' else 'inner')
+        self.location = jumpto
+
+        self.moves += 1
+
+        # self.history.append((destination))
+
+    def __str__(self):
+        return f'PathWalker: {self.layer:5} {self.moves:5} {self.distance:10} {self.location}'
+
+def walk_paths(paths, enable_layers):
+    queue = [PathWalker(paths, enable_layers)]
+
+    exit_found = None
+    while len(queue) > 0:
+        print (f'Queue Length: {len(queue)}')
+
+        # Work the current walker that has the shortest distance
+        which = sorted(enumerate(queue), key=lambda x: x[1].distance).pop(0)
+        walker = queue.pop(which[0])
+        print (walker.distance, walker.location, "-->", walker.paths[walker.location])
+
+        for n in walker.nextSteps():
+            print(f' === {n}')
+            if n.location == ('ZZ', 'inner'):
+                if exit_found is None or n.distance < exit_found.distance:
+                    print("FOUND EXIT:", n)
+                    exit_found = n
+            elif n.layer < 0:
+                # We can't follow a path into negative space
+                continue
+
+            if exit_found is None or n.distance < exit_found.distance:
+                queue.append(n)
+
+    print("Exit:", exit_found)
+    # links = []
+    # for i in range(len(exit_found.history)-1):
+    #     links.append(f'{exit_found.history[i]} => {exit_found.history[i+1]}')
+    # for link in sorted(links):
+    #     print (link)
+
+def optimize_paths(paths, step=1):
+    for src, dests in paths.items():
+        print (src, dests)
+
+    print()
+
+    newpaths = {}
+    changed = False
+
+    for src, dests in paths.items():
+        print (src, dests)
+
+        if step == 2 and len(dests) > 1:
+            # For step 2 we cannot compress anything that has multiple destinations
+            print(f'CANNOT COMPRESS MULTI STEP {src} => {dests}')
+            newpaths[src] = paths[src]
+            continue
+
+        for dest,layer_dist in dests.items():
+            follow_dest = (dest[0], 'inner' if dest[1] != 'inner' else 'outer')
+            print(f'TRYING TO COMPRESS {src} ==> {dest}/{follow_dest}')
+            if src not in newpaths:
+                newpaths[src] = {}
+
+            if dest[0] != 'ZZ' and len(paths[follow_dest]) == 1:
+                for newdest, newlayer_dist in paths[follow_dest].items():
+                    pass
+                print(f'  -- Found {paths[follow_dest]}')
+                print(f'      {newdest} {newlayer_dist}')
+                print (newdest, newlayer_dist)
+                newpaths[src][newdest] = (layer_dist[0] + newlayer_dist[0], layer_dist[1] + newlayer_dist[1])
+                changed = True
+                print(f'        COMPRESSED {src} ==> {dest}/{follow_dest} to {newdest} {newpaths[src][newdest]}')
+            else:
+                print(f'No Compresion found')
+                newpaths[src][dest] = layer_dist
+
+            print()
+            print()
+
+    
+    if changed:
+        return optimize_paths(newpaths)
+    return paths
 
 
-with open("input2.txt", "r") as f:
+def paths_add_layers(paths):
+    newpaths = {}
+    for src, dests in paths.items():
+        print (src, dests)
+        for dest,dist in dests.items():
+            if src not in newpaths:
+                newpaths[src] = {}
+            layer_diff = -1 if dest[1] == 'outer' else 1
+            newpaths[src][dest] = (layer_diff, dist)
+
+    return newpaths
+
+
+with open("input.txt", "r") as f:
     lines = [x.rstrip("\n") for x in f.readlines()]
 
-maze = Maze(lines, True)
-maze.print()
-solve(maze)
+# maze = Maze(lines)
+# maze.print()
+# solve(maze)
 # manual(maze)
+
+
+# maze = Maze(lines, True)
+# maze.print()
+# print('Mapping paths...')
+# paths = map_paths(maze)
+paths = {('RX', 'outer'): {('ZZ', 'outer'): 10, ('WS', 'inner'): 89}, ('RX', 'inner'): {('WJ', 'outer'): 81}, ('AN', 'outer'): {('GP', 'outer'): 5, ('KV', 'inner'): 59, ('VN', 'inner'): 61}, ('AN', 'inner'): {('QD', 'outer'): 81}, ('GP', 'outer'): {('AN', 'outer'): 5, ('KV', 'inner'): 57, ('VN', 'inner'): 59}, ('GP', 'inner'): {('LS', 'outer'): 77}, ('YV', 'outer'): {('FM', 'inner'): 73}, ('YV', 'inner'): {('HY', 'outer'): 77}, ('JY', 'outer'): {('QD', 'inner'): 85}, ('JY', 'inner'): {('AO', 'outer'): 73}, ('KV', 'outer'): {('TT', 'inner'): 87}, ('KV', 'inner'): {('VN', 'inner'): 5, ('GP', 'outer'): 57, ('AN', 'outer'): 59}, ('LF', 'outer'): {('BU', 'inner'): 71}, ('LF', 'inner'): {('JM', 'outer'): 83}, ('AO', 'outer'): {('JY', 'inner'): 73}, ('AO', 'inner'): {('UB', 'outer'): 65}, ('AA', 'outer'): {('AO', 'outer'): 5, ('JY', 'inner'): 75}, ('QD', 'outer'): {('AN', 'inner'): 81}, ('QD', 'inner'): {('JY', 'outer'): 85}, ('PW', 'outer'): {('QE', 'inner'): 67}, ('PW', 'inner'): {('FM', 'outer'): 45}, ('LD', 'outer'): {('YD', 'inner'): 55}, ('LD', 'inner'): {('QE', 'outer'): 79}, ('YD', 'outer'): {('IV', 'inner'): 71}, ('YD', 'inner'): {('LD', 'outer'): 55}, ('HY', 'outer'): {('YV', 'inner'): 77}, ('HY', 'inner'): {('WS', 'outer'): 79}, ('UO', 'outer'): {('LS', 'inner'): 49}, ('UO', 'inner'): {('IV', 'outer'): 47}, ('VN', 'outer'): {('TG', 'inner'): 49}, ('VN', 'inner'): {('KV', 'inner'): 5, ('GP', 'outer'): 59, ('AN', 'outer'): 61}, ('BU', 'outer'): {('WJ', 'inner'): 43}, ('BU', 'inner'): {('LF', 'outer'): 71}, ('IV', 'outer'): {('UO', 'inner'): 47}, ('IV', 'inner'): {('YD', 'outer'): 71}, ('TG', 'outer'): {('JM', 'inner'): 53}, ('TG', 'inner'): {('VN', 'outer'): 49}, ('QE', 'outer'): {('LD', 'inner'): 79}, ('QE', 'inner'): {('PW', 'outer'): 67}, ('UB', 'outer'): {('AO', 'inner'): 65}, ('UB', 'inner'): {('BM', 'outer'): 95}, ('JM', 'outer'): {('LF', 'inner'): 83}, ('JM', 'inner'): {('TG', 'outer'): 53}, ('WS', 'outer'): {('HY', 'inner'): 79}, ('WS', 'inner'): {('ZZ', 'outer'): 81, ('RX', 'outer'): 89}, ('BM', 'outer'): {('UB', 'inner'): 95}, ('BM', 'inner'): {('TT', 'outer'): 79}, ('FM', 'outer'): {('PW', 'inner'): 45}, ('FM', 'inner'): {('YV', 'outer'): 73}, ('TT', 'outer'): {('BM', 'inner'): 79}, ('TT', 'inner'): {('KV', 'outer'): 87}, ('WJ', 'outer'): {('RX', 'inner'): 81}, ('WJ', 'inner'): {('BU', 'outer'): 43}, ('LS', 'outer'): {('GP', 'inner'): 77}, ('LS', 'inner'): {('UO', 'outer'): 49}}
+paths = paths_add_layers(paths)
+paths = optimize_paths(paths, 2)
+print("FINISHED")
+for src, dests in paths.items():
+    print (src, dests)
+
+# print (paths)
+print()
+walk_paths(paths, True)
 
 # with open("input.txt", "r") as f:
 #     lines = [x.rstrip("\r\n") for x in f.readlines()]
