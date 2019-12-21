@@ -13,6 +13,7 @@ class Maze(object):
         self.found_keys = found_keys
         self.last_n_places = last_n_places
 
+        self.__simplify()
         if self.remaining_keys is None:
             self.remaining_keys = 0
             for c in Maze.key_symbols:
@@ -22,6 +23,25 @@ class Maze(object):
     @classmethod
     def from_lines(clazz, lines):
         return Maze([list(line) for line in lines])
+
+    def __count_surrounding_walls(self, rowi, coli):
+        count=0
+        for test in ((-1,0), (1,0), (0,-1), (0,1)):
+            if self.maze[rowi+test[0]][coli+test[1]] == '#':
+                count += 1
+        return count
+
+    def __simplify(self):
+        modified = True
+        while modified:
+            modified = False
+
+            for rowi, row in enumerate(self.maze):
+                for coli, cell in enumerate(row):
+                    if cell == '.' and self.__count_surrounding_walls(rowi, coli) == 3:
+                        self.maze[rowi][coli] = '#'
+                        modified = True
+
 
     @classmethod
     def from_maze(clazz, maze):
@@ -52,6 +72,9 @@ class Maze(object):
     def at(self, location):
         return self.maze[location[0]][location[1]]
 
+    def set_at(self, location, symbol):
+        self.maze[location[0]][location[1]] = symbol
+
     def available_moves(self):
         moves = []
 
@@ -71,6 +94,11 @@ class Maze(object):
             moves.append(offset)
 
         return moves
+
+    def set_location(self, offset):
+        self.maze[self.location[0]][self.location[1]] = '.'
+        self.location = offset
+        self.maze[self.location[0]][self.location[1]] = '@'
 
     def move(self, offset):
         self.maze[self.location[0]][self.location[1]] = '.'
@@ -94,9 +122,11 @@ class Maze(object):
         self.move_count += 1
         self.lastmove = offset
 
+        return original
+
     def print(self):
         for line in self.maze:
-            print (''.join(line))
+            print (''.join(line).replace('.', ' ').replace('#', '\u2588'))
         print(f'{self.move_count:10} {self.location} {self.remaining_keys} {self.found_keys}')
 
 
@@ -159,6 +189,49 @@ def run(maze):
                 # newmaze.print()
                 # input()
 
+class Walker(object):
+    def __init__(self, maze, symbol):
+        self.maze = maze
+        self.location = maze.find(symbol)
+        self.steps = 0
+        self.symbols = []  # [(symbol, distance), ...]
+
+    def move(self):
+        original_location = self.location
+        maze.set_location(self.location)
+        moves = list(maze.available_moves())
+        self.steps += 1
+
+        for move in moves:
+            newwalker = copy.deepcopy(self)
+            symbol = maze.move(move)
+            newwalker.location = maze.location
+
+            if symbol is not None:
+                newwalker.symbols.append((symbol, self.steps))
+        
+        maze.set_at(original_location, '#')
+
+
+def paths_from_symbol(walker):
+    pass
+
+
+# [(a, 5), (b, 10), ...]
+
+{'@a': (5, None),
+'@b': (15, 'DG')
+}
+
+
+def map_paths(maze):
+    paths = {}  # paths[src][dest] = (distance,set(o,b,S,T,a,C,L,e,S))
+    for src in f'@{Maze.key_symbols}':
+        usemaze = copy.deepcopy(maze)
+        flood = paths_from_symbol(Walker(usemaze, symbol))        
+        break
+
+    return paths
 
 lines = []
 with open("input.txt", "r") as f:
@@ -167,4 +240,6 @@ with open("input.txt", "r") as f:
 
 maze = Maze.from_lines(lines)
 maze.print()
-run(maze)
+
+# run(maze)
+paths = map_paths(maze)

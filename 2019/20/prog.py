@@ -380,17 +380,19 @@ class PathWalker(object):
         self.layer = 0
         self.enable_layers = enable_layers
         self.moves = 0
-        # self.history = []
+        self.history = []
 
     def nextSteps(self):
         destinations = self.paths[self.location]
 
         results = []
         for destination in destinations:
+            layer_distance = self.paths[self.location][destination]
+
             if self.enable_layers:
                 if self.layer == 0 and destination[0] != 'ZZ' and destination[1] == 'outer':
                     continue
-                if self.layer != 0 and destination[0] == 'ZZ':
+                if self.layer + layer_distance[0] != -1 and destination[0] == 'ZZ':
                     continue
 
             newpw = copy.deepcopy(self)
@@ -402,14 +404,13 @@ class PathWalker(object):
         layer_distance = self.paths[self.location][destination]
         self.layer += layer_distance[0]
         self.distance += layer_distance[1]
-        # del self.paths[self.location][destination]
 
         jumpto = (destination[0], 'outer' if destination[1] == 'inner' else 'inner')
         self.location = jumpto
 
         self.moves += 1
 
-        # self.history.append((destination))
+        self.history.append((destination))
 
     def __str__(self):
         return f'PathWalker: {self.layer:5} {self.moves:5} {self.distance:10} {self.location}'
@@ -419,20 +420,24 @@ def walk_paths(paths, enable_layers):
 
     exit_found = None
     while len(queue) > 0:
-        print (f'Queue Length: {len(queue)}')
+        print (f'\nQueue Length: {len(queue)}')
 
         # Work the current walker that has the shortest distance
         which = sorted(enumerate(queue), key=lambda x: x[1].distance).pop(0)
         walker = queue.pop(which[0])
         print (walker.distance, walker.location, "-->", walker.paths[walker.location])
+        print(walker.layer, walker.history)
 
         for n in walker.nextSteps():
-            print(f' === {n}')
+            print(f' === {n.history}')
+            print(f'     {n}')
             if n.location == ('ZZ', 'inner'):
+                if enable_layers and n.layer != -1:
+                    continue
                 if exit_found is None or n.distance < exit_found.distance:
                     print("FOUND EXIT:", n)
                     exit_found = n
-            elif n.layer < 0:
+            elif enable_layers and n.layer < 0:
                 # We can't follow a path into negative space
                 continue
 
@@ -488,7 +493,7 @@ def optimize_paths(paths, step=1):
 
     
     if changed:
-        return optimize_paths(newpaths)
+        return optimize_paths(newpaths, step)
     return paths
 
 
@@ -505,7 +510,7 @@ def paths_add_layers(paths):
     return newpaths
 
 
-with open("input.txt", "r") as f:
+with open("input2.txt", "r") as f:
     lines = [x.rstrip("\n") for x in f.readlines()]
 
 # maze = Maze(lines)
@@ -514,11 +519,11 @@ with open("input.txt", "r") as f:
 # manual(maze)
 
 
-# maze = Maze(lines, True)
-# maze.print()
-# print('Mapping paths...')
-# paths = map_paths(maze)
-paths = {('RX', 'outer'): {('ZZ', 'outer'): 10, ('WS', 'inner'): 89}, ('RX', 'inner'): {('WJ', 'outer'): 81}, ('AN', 'outer'): {('GP', 'outer'): 5, ('KV', 'inner'): 59, ('VN', 'inner'): 61}, ('AN', 'inner'): {('QD', 'outer'): 81}, ('GP', 'outer'): {('AN', 'outer'): 5, ('KV', 'inner'): 57, ('VN', 'inner'): 59}, ('GP', 'inner'): {('LS', 'outer'): 77}, ('YV', 'outer'): {('FM', 'inner'): 73}, ('YV', 'inner'): {('HY', 'outer'): 77}, ('JY', 'outer'): {('QD', 'inner'): 85}, ('JY', 'inner'): {('AO', 'outer'): 73}, ('KV', 'outer'): {('TT', 'inner'): 87}, ('KV', 'inner'): {('VN', 'inner'): 5, ('GP', 'outer'): 57, ('AN', 'outer'): 59}, ('LF', 'outer'): {('BU', 'inner'): 71}, ('LF', 'inner'): {('JM', 'outer'): 83}, ('AO', 'outer'): {('JY', 'inner'): 73}, ('AO', 'inner'): {('UB', 'outer'): 65}, ('AA', 'outer'): {('AO', 'outer'): 5, ('JY', 'inner'): 75}, ('QD', 'outer'): {('AN', 'inner'): 81}, ('QD', 'inner'): {('JY', 'outer'): 85}, ('PW', 'outer'): {('QE', 'inner'): 67}, ('PW', 'inner'): {('FM', 'outer'): 45}, ('LD', 'outer'): {('YD', 'inner'): 55}, ('LD', 'inner'): {('QE', 'outer'): 79}, ('YD', 'outer'): {('IV', 'inner'): 71}, ('YD', 'inner'): {('LD', 'outer'): 55}, ('HY', 'outer'): {('YV', 'inner'): 77}, ('HY', 'inner'): {('WS', 'outer'): 79}, ('UO', 'outer'): {('LS', 'inner'): 49}, ('UO', 'inner'): {('IV', 'outer'): 47}, ('VN', 'outer'): {('TG', 'inner'): 49}, ('VN', 'inner'): {('KV', 'inner'): 5, ('GP', 'outer'): 59, ('AN', 'outer'): 61}, ('BU', 'outer'): {('WJ', 'inner'): 43}, ('BU', 'inner'): {('LF', 'outer'): 71}, ('IV', 'outer'): {('UO', 'inner'): 47}, ('IV', 'inner'): {('YD', 'outer'): 71}, ('TG', 'outer'): {('JM', 'inner'): 53}, ('TG', 'inner'): {('VN', 'outer'): 49}, ('QE', 'outer'): {('LD', 'inner'): 79}, ('QE', 'inner'): {('PW', 'outer'): 67}, ('UB', 'outer'): {('AO', 'inner'): 65}, ('UB', 'inner'): {('BM', 'outer'): 95}, ('JM', 'outer'): {('LF', 'inner'): 83}, ('JM', 'inner'): {('TG', 'outer'): 53}, ('WS', 'outer'): {('HY', 'inner'): 79}, ('WS', 'inner'): {('ZZ', 'outer'): 81, ('RX', 'outer'): 89}, ('BM', 'outer'): {('UB', 'inner'): 95}, ('BM', 'inner'): {('TT', 'outer'): 79}, ('FM', 'outer'): {('PW', 'inner'): 45}, ('FM', 'inner'): {('YV', 'outer'): 73}, ('TT', 'outer'): {('BM', 'inner'): 79}, ('TT', 'inner'): {('KV', 'outer'): 87}, ('WJ', 'outer'): {('RX', 'inner'): 81}, ('WJ', 'inner'): {('BU', 'outer'): 43}, ('LS', 'outer'): {('GP', 'inner'): 77}, ('LS', 'inner'): {('UO', 'outer'): 49}}
+maze = Maze(lines, True)
+maze.print()
+print('Mapping paths...')
+paths = map_paths(maze)
+# paths = {('RX', 'outer'): {('ZZ', 'outer'): 10, ('WS', 'inner'): 89}, ('RX', 'inner'): {('WJ', 'outer'): 81}, ('AN', 'outer'): {('GP', 'outer'): 5, ('KV', 'inner'): 59, ('VN', 'inner'): 61}, ('AN', 'inner'): {('QD', 'outer'): 81}, ('GP', 'outer'): {('AN', 'outer'): 5, ('KV', 'inner'): 57, ('VN', 'inner'): 59}, ('GP', 'inner'): {('LS', 'outer'): 77}, ('YV', 'outer'): {('FM', 'inner'): 73}, ('YV', 'inner'): {('HY', 'outer'): 77}, ('JY', 'outer'): {('QD', 'inner'): 85}, ('JY', 'inner'): {('AO', 'outer'): 73}, ('KV', 'outer'): {('TT', 'inner'): 87}, ('KV', 'inner'): {('VN', 'inner'): 5, ('GP', 'outer'): 57, ('AN', 'outer'): 59}, ('LF', 'outer'): {('BU', 'inner'): 71}, ('LF', 'inner'): {('JM', 'outer'): 83}, ('AO', 'outer'): {('JY', 'inner'): 73}, ('AO', 'inner'): {('UB', 'outer'): 65}, ('AA', 'outer'): {('AO', 'outer'): 5, ('JY', 'inner'): 75}, ('QD', 'outer'): {('AN', 'inner'): 81}, ('QD', 'inner'): {('JY', 'outer'): 85}, ('PW', 'outer'): {('QE', 'inner'): 67}, ('PW', 'inner'): {('FM', 'outer'): 45}, ('LD', 'outer'): {('YD', 'inner'): 55}, ('LD', 'inner'): {('QE', 'outer'): 79}, ('YD', 'outer'): {('IV', 'inner'): 71}, ('YD', 'inner'): {('LD', 'outer'): 55}, ('HY', 'outer'): {('YV', 'inner'): 77}, ('HY', 'inner'): {('WS', 'outer'): 79}, ('UO', 'outer'): {('LS', 'inner'): 49}, ('UO', 'inner'): {('IV', 'outer'): 47}, ('VN', 'outer'): {('TG', 'inner'): 49}, ('VN', 'inner'): {('KV', 'inner'): 5, ('GP', 'outer'): 59, ('AN', 'outer'): 61}, ('BU', 'outer'): {('WJ', 'inner'): 43}, ('BU', 'inner'): {('LF', 'outer'): 71}, ('IV', 'outer'): {('UO', 'inner'): 47}, ('IV', 'inner'): {('YD', 'outer'): 71}, ('TG', 'outer'): {('JM', 'inner'): 53}, ('TG', 'inner'): {('VN', 'outer'): 49}, ('QE', 'outer'): {('LD', 'inner'): 79}, ('QE', 'inner'): {('PW', 'outer'): 67}, ('UB', 'outer'): {('AO', 'inner'): 65}, ('UB', 'inner'): {('BM', 'outer'): 95}, ('JM', 'outer'): {('LF', 'inner'): 83}, ('JM', 'inner'): {('TG', 'outer'): 53}, ('WS', 'outer'): {('HY', 'inner'): 79}, ('WS', 'inner'): {('ZZ', 'outer'): 81, ('RX', 'outer'): 89}, ('BM', 'outer'): {('UB', 'inner'): 95}, ('BM', 'inner'): {('TT', 'outer'): 79}, ('FM', 'outer'): {('PW', 'inner'): 45}, ('FM', 'inner'): {('YV', 'outer'): 73}, ('TT', 'outer'): {('BM', 'inner'): 79}, ('TT', 'inner'): {('KV', 'outer'): 87}, ('WJ', 'outer'): {('RX', 'inner'): 81}, ('WJ', 'inner'): {('BU', 'outer'): 43}, ('LS', 'outer'): {('GP', 'inner'): 77}, ('LS', 'inner'): {('UO', 'outer'): 49}}
 paths = paths_add_layers(paths)
 paths = optimize_paths(paths, 2)
 print("FINISHED")
