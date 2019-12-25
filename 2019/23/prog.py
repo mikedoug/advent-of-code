@@ -44,7 +44,7 @@ class NAT(threading.Thread):
                         print(f'NAT sent {self.value[1]} twice in a row for y')
                     self.last_sent = self.value
 
-            time.sleep(.10)
+            time.sleep(.01)
 
 natthread = NAT()
 
@@ -58,7 +58,7 @@ class ComputerThread(threading.Thread):
 
     def run(self):
 
-        print (f'Starting computer {self.i}')
+        # print (f'Starting computer {self.i}')
         self.c.execute([self.i])
 
         iter = 1000
@@ -68,13 +68,13 @@ class ComputerThread(threading.Thread):
             # print(f'{self.i} {c.get_state()}')
             if self.c.get_state() == computer.State.WAIT:
                 try:
-                    print(f'{self.i} queue {self.q}')
-                    packet = self.q.get(block=True, timeout=.25)
-                    print(f'{self.i} >> Sent {packet}')
+                    # print(f'{self.i} queue {self.q}')
+                    packet = self.q.get(block=True, timeout=.01)
+                    # print(f'{self.i} >> Sent {packet}')
                     self.c.execute([packet[0], packet[1]])
                     self.q.task_done()
                 except queue.Empty:
-                    print(f'{self.i} >> No Packet')
+                    # print(f'{self.i} >> No Packet')
                     self.c.execute([-1])
                     self.idle_count += 1
             else:
@@ -85,7 +85,7 @@ class ComputerThread(threading.Thread):
                 self.idle_count = 0
                 self.c.clear_outputs()
 
-                print(f"{self.i} outputs: {outputs}")
+                # print(f"{self.i} outputs: {outputs}")
                 sys.stdout.flush()
 
                 outputs = [outputs[i:i+3] for i in range(0, len(outputs), 3)]
@@ -93,7 +93,7 @@ class ComputerThread(threading.Thread):
                     print (i, o[0], o[1], o[2])
                     if o[0] != 255:
                         computers[o[0]].q.put(o[1:3])
-                        print (f'Queued on {o[0]}: {o[1:3]}')
+                        # print (f'Queued on {o[0]}: {o[1:3]}')
                     else:
                         natthread.set_value(o[1], o[2])
 
