@@ -4,21 +4,9 @@ import hashlib
 class Maze(object):
     key_symbols = 'abcdefghijklmnopqrstuvwxyz'
     door_symbols = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    def __init__(self, maze, location=None, move_count=0, remaining_keys=None, lastmove=None, found_keys='', last_n_places=[]):
+    def __init__(self, maze):
         self.maze = copy.deepcopy(maze)
-        self.location = self.find('@') if location is None else location
-        self.move_count = move_count
-        self.remaining_keys = remaining_keys
-        self.lastmove = lastmove
-        self.found_keys = found_keys
-        self.last_n_places = last_n_places
-
         self.__simplify()
-        if self.remaining_keys is None:
-            self.remaining_keys = 0
-            for c in Maze.key_symbols:
-                if self.find(c) is not None:
-                    self.remaining_keys += 1
 
     @classmethod
     def from_lines(clazz, lines):
@@ -42,19 +30,6 @@ class Maze(object):
                         self.maze[rowi][coli] = '#'
                         modified = True
 
-
-    @classmethod
-    def from_maze(clazz, maze):
-        return Maze(maze.maze, maze.location, maze.move_count, maze.remaining_keys, maze.lastmove, maze.found_keys, maze.last_n_places)
-
-    def _is_equiv(self, other):
-        return self.location == other.location and self.move_count == other.move_count \
-            and self.remaining_keys == other.remaining_keys \
-            and list(sorted(self.found_keys)) == list(sorted(other.found_keys))
-
-    def hash(self):
-        return hashlib.sha256(f'{self.location}{self.move_count}{self.remaining_keys}{sorted(self.found_keys)}'.encode()).digest()
-
     def find(self, char):
         for rowi, row in enumerate(self.maze):
             try:
@@ -75,59 +50,26 @@ class Maze(object):
     def set_at(self, location, symbol):
         self.maze[location[0]][location[1]] = symbol
 
-    def available_moves(self):
+    def available_moves(self, location):
         moves = []
 
         for offset in [(-1,0), (1,0), (0,-1), (0,1)]:
-            offset_location = Maze.location_calc(self.location, offset)
+            offset_location = Maze.location_calc(location, offset)
             found_at_offset = self.at(offset_location)
 
             if found_at_offset == '#':
                 continue
 
-            if offset_location in self.last_n_places:
-                continue
+            # if found_at_offset in Maze.door_symbols and found_at_offset.lower() not in self.found_keys:
+            #     continue
 
-            if found_at_offset in Maze.door_symbols and found_at_offset.lower() not in self.found_keys:
-                continue
-
-            moves.append(offset)
+            moves.append(self.location_calc(location, offset))
 
         return moves
-
-    def set_location(self, offset):
-        self.maze[self.location[0]][self.location[1]] = '.'
-        self.location = offset
-        self.maze[self.location[0]][self.location[1]] = '@'
-
-    def move(self, offset):
-        self.maze[self.location[0]][self.location[1]] = '.'
-        orig_location = self.location
-        
-        self.location = (self.location[0] + offset[0], self.location[1] + offset[1])
-        original = self.maze[self.location[0]][self.location[1]]
-        if original in Maze.key_symbols:
-            self.remaining_keys -= 1
-            self.found_keys += original
-            self.last_n_places = []
-            print(f' --- {self.move_count:10} {self.location} {self.remaining_keys} {self.found_keys}')
-        elif original in Maze.door_symbols:
-            self.last_n_places = []
-        else:
-            self.last_n_places += [orig_location]
-            if len(self.last_n_places) > 20:
-                self.last_n_places.pop(0)
-
-        self.maze[self.location[0]][self.location[1]] = '@'
-        self.move_count += 1
-        self.lastmove = offset
-
-        return original
 
     def print(self):
         for line in self.maze:
             print (''.join(line).replace('.', ' ').replace('#', '\u2588'))
-        print(f'{self.move_count:10} {self.location} {self.remaining_keys} {self.found_keys}')
 
 
 def run_old(maze):
@@ -190,56 +132,162 @@ def run(maze):
                 # input()
 
 class Walker(object):
-    def __init__(self, maze, symbol):
+    def __init__(self, maze, symbol=None):
         self.maze = maze
-        self.location = maze.find(symbol)
+        if symbol is not None:
+            self.location = maze.find(symbol)
         self.steps = 0
+        self.symbol = symbol
         self.symbols = []  # [(symbol, distance), ...]
+        self.done = False
+
+    def clone(self):
+        r = Walker(self.maze)
+        r.location = self.location
+        r.steps = self.steps
+        r.symbol = self.symbol
+        r.symbols = copy.copy(self.symbols)
+        r.done = self.done
+        return r
 
     def move(self):
         original_location = self.location
-        maze.set_location(self.location)
-        moves = list(maze.available_moves())
+        moves = list(self.maze.available_moves(self.location))
+        # print(f'Evaluating from {original_location} has moves: {moves}')
+
+        if len(moves) == 0:
+            self.done = True
+            return [self]
+
         self.steps += 1
+        response = [self] + [self.clone() for _ in range(len(moves) -1)]
+        # print (response)
+        for i, newlocation in enumerate(moves):
+            response[i].location = newlocation
+            symbol = self.maze.at(newlocation)
 
-        for move in moves:
-            newwalker = copy.deepcopy(self)
-            symbol = maze.move(move)
-            newwalker.location = maze.location
-
-            if symbol is not None:
-                newwalker.symbols.append((symbol, self.steps))
+            if symbol is not None and symbol != '.':
+                response[i].symbols.append((symbol, self.steps))
         
-        maze.set_at(original_location, '#')
+        self.maze.set_at(original_location, '#')
 
+        return response
 
-def paths_from_symbol(walker):
-    pass
+    def __repr__(self):
+        return f'{self.steps} {self.location} {self.symbols}'
 
+def walk_paths(walker):
+    queue = [walker]
+
+    paths = {}
+    while len(queue) > 0:
+        walker = queue.pop(0)
+        walkers = walker.move()
+        for walker in walkers:
+            path = ''
+            if walker.done:
+                for symbol in walker.symbols:
+                    if symbol[0] in Maze.key_symbols:
+                        paths[symbol[0]] = (symbol[1], path)
+                        path += symbol[0]
+                    elif symbol[0] in Maze.door_symbols:
+                        path += symbol[0]
+            else:
+                queue.append(walker)
+
+    return paths
+    
 
 # [(a, 5), (b, 10), ...]
 
-{'@a': (5, None),
-'@b': (15, 'DG')
-}
+#{'@': {'a': (5, None), 'b': (15, 'DG')}
 
 
 def map_paths(maze):
-    paths = {}  # paths[src][dest] = (distance,set(o,b,S,T,a,C,L,e,S))
-    for src in f'@{Maze.key_symbols}':
+    paths = {}  # paths[src + dest] = (distance,'obSTAclEs')
+    for symbol in f'@{Maze.key_symbols}':
+        if maze.find(symbol) is None:
+            continue
         usemaze = copy.deepcopy(maze)
-        flood = paths_from_symbol(Walker(usemaze, symbol))        
-        break
+        paths[symbol] = walk_paths(Walker(usemaze, symbol))   
 
     return paths
 
 lines = []
-with open("input.txt", "r") as f:
+with open("input2.txt", "r") as f:
     for line in f.readlines():
         lines.append(line.rstrip())
 
-maze = Maze.from_lines(lines)
-maze.print()
+srcmaze = Maze.from_lines(lines)
+srcmaze.print()
 
 # run(maze)
-paths = map_paths(maze)
+paths = map_paths(srcmaze)
+print (paths)
+
+class PathWalker(object):
+    def __init__(self, location, keys=None, distance=0):
+        self.location = location
+        self.keys = list(keys) if keys is not None else []
+        self.distance = distance
+
+    def clone(self):
+        return PathWalker(self.location, self.keys, self.distance)
+
+    def add(self, key, distance):
+        self.location = key
+        self.distance += distance
+        self.keys.append(key.upper())
+
+    def number_of_keys(self):
+        return len(self.keys)
+
+    def options(self, paths):
+        options={}
+        for destination in paths[self.location]:
+            if destination.upper() in self.keys:
+                continue
+            if any(door.upper() not in self.keys for door in paths[self.location][destination][1]):
+                continue
+            options[destination] = paths[self.location][destination]
+
+        return options
+
+def runpaths(paths):
+    queue = [PathWalker('@')]
+    found_least = None
+    total_keys = len(paths.keys()) - 1
+    print(f"Total keys: {total_keys}")
+    while len(queue) > 0:
+        # print (f"Queue Length: {len(queue)}")
+        lowest = None
+        for i, walker in enumerate(queue):
+            if lowest is None or walker.distance < queue[i].distance:
+                lowest = i
+        walker = queue.pop(i)
+
+        print()
+        print(f'Walking from {walker.location} so far {walker.distance} and {walker.keys}')
+        for key,info in walker.options(paths).items():
+            print(f' -- {key} {info}')
+            newwalker = walker.clone()
+            newwalker.add(key, info[0])
+
+            if newwalker.number_of_keys() == total_keys:
+                if found_least is None or newwalker.distance < found_least.distance:
+                    found_least = newwalker
+                    print(f"FOUND: {found_least.distance} {''.join(found_least.keys)}")
+                else:
+                    print(f"FOUND - SKIPPED: {newwalker.distance} {''.join(newwalker.keys)}")
+            elif found_least is None or newwalker.distance < found_least.distance:
+                print(f"{newwalker.distance} {len(newwalker.keys)}")
+                queue.append(newwalker)
+            else:
+                print(f"{newwalker.distance} {len(newwalker.keys)} PRUNED")
+
+    print(f"FOUND: {found_least.distance} {''.join(found_least.keys)}")
+
+    # options = list(filter(lambda x: print(paths[location][x][1]), paths[location]))
+
+
+runpaths(paths)
