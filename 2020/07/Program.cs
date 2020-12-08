@@ -39,6 +39,14 @@ namespace _05
 
     }
 
+    public static class EnumExtension {
+        public static void AddRange<T>(this Queue<T> @this, IEnumerable<T> items) {
+            foreach (T item in items) {
+                @this.Enqueue(item);
+            }
+        }
+    }
+
     class Program
     {
         static void Main(string[] args) {
@@ -61,11 +69,10 @@ namespace _05
             while(queue.Count > 0) {
                 var current = queue.Dequeue();
                 seenBags.Add(current);
-                bagDefinitions
+                queue.AddRange(bagDefinitions
                     .Where((def) => !seenBags.Contains(def.Outer) && def.Inner.ContainsKey(current))
                     .Select((def) => def.Outer)
-                    .ToList()
-                    .ForEach(bag => queue.Enqueue(bag));
+                );
             }
 
             Console.WriteLine($"Possible bag count: {seenBags.Where(x => x != ORIGINAL).ToList().Count}");
