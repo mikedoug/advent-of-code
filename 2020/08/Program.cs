@@ -178,11 +178,10 @@ namespace _08
                     stack.RemoveAt(stack.Count - 1);
                     stack.Add(newLine);
 
-
                     lastRemovalInfo = $"{newLine.I} {newLine.Command} {newLine.Arg}";
 
                     // Reseed our infinite loop detection set
-                    seenIndexes = stack.Select(l => l.I).ToHashSet();
+                    seenIndexes = stack.Select(item => item.I).ToHashSet();
                 } else {
                     // Add the command to the stack
                     stack.Add(next);
