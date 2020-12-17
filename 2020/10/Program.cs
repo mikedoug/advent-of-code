@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 namespace _10
 {
@@ -42,7 +42,7 @@ namespace _10
     {
         static void Main()
         {
-            // Main1();
+            Main1();
             Main2();
         }
 
@@ -66,35 +66,57 @@ namespace _10
             Console.WriteLine($"{differences[1] * differences[3]}");
         }
 
+        public class TimeIt : IDisposable
+        {
+            private Stopwatch timer = new Stopwatch();
+            private string description;
+
+            public TimeIt(string description) {
+                timer.Start();
+                this.description = description;
+            }
+
+            public void Dispose()
+            {
+                timer.Stop();
+                Console.WriteLine($"{description}: {timer.Elapsed}");
+            }
+        }
+
         static void Main2()
         {
-            var nodes = System.IO.File.ReadLines("input.txt")
-                .Union(new string[]{"0"})
-                .Select(line => new Node(Int32.Parse(line)))
-                .OrderBy(node => node.Number)
-                .ToList();
+            List<Node> nodes;
+            using (new TimeIt("Reading file")) {
+                nodes = System.IO.File.ReadLines("input.txt")
+                    .Union(new string[]{"0"})
+                    .Select(line => new Node(Int32.Parse(line)))
+                    .OrderBy(node => node.Number)
+                    .ToList();
+            }
 
-            var lastThree = new List<Node>();
-
-            // Iterate across the nodes...
-            foreach(var node in nodes) {
-                // Look at only the last three (because only they can be within the -3 range)
-                foreach(var previous in lastThree) {
-                    // If it's within range, then add me as a child
-                    if (previous.Number >= node.Number - 3) {
-                        previous.AddChild(node);
+            using (new TimeIt("Parsing nodes")) {
+                var lastThree = new List<Node>();
+                // Iterate across the nodes...
+                foreach(var node in nodes) {
+                    // Look at only the last three (because only they can be within the -3 range)
+                    foreach(var previous in lastThree) {
+                        // If it's within range, then add me as a child
+                        if (previous.Number >= node.Number - 3) {
+                            previous.AddChild(node);
+                        }
                     }
-                }
 
-                // Add myself to the last three list, and remove one if the count goes above 3
-                lastThree.Add(node);
-                if (lastThree.Count > 3) {
-                    lastThree.RemoveAt(0);
+                    // Add myself to the last three list, and remove one if the count goes above 3
+                    lastThree.Add(node);
+                    if (lastThree.Count > 3) {
+                        lastThree.RemoveAt(0);
+                    }
                 }
             }
 
-            Console.WriteLine(nodes[0].CountSolutions());
-
+            using (new TimeIt("Solving")) {
+                Console.WriteLine(nodes[0].CountSolutions());
+            }
         }
     }
 }
