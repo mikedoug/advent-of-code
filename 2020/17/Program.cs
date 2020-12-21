@@ -110,6 +110,16 @@ namespace _17a
     }
     class Program
     {
+
+        static void Main(string[] args) {
+            using(new TimeIt.TimeIt("Part 1")) {
+                Main1(args);
+            }
+            using(new TimeIt.TimeIt("Part 2")) {
+                _17b.Program.Main2(args);
+            }
+        }
+
         static void Main1(string[] args)
         {
             var lines = System.IO.File.ReadLines("input.txt")

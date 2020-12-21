@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace _17
+namespace _17b
 {
     class Wxyz {
         public int W {get; init;}
@@ -119,9 +119,9 @@ namespace _17
         }
 
     }
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main2(string[] args)
         {
             var lines = System.IO.File.ReadLines("input.txt")
                 .ToList();
