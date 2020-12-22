@@ -45,46 +45,35 @@ namespace _20
             Console.WriteLine(topString);
             Console.WriteLine(topString.Reverse().ToArray());
             Console.WriteLine("-------");
-            normalOrientation[0] = Convert.ToInt32(topString, 2);
-            flippedSides[0] = Convert.ToInt32(new string(topString.Reverse().ToArray()), 2);
+            var A = Convert.ToInt32(topString, 2);
+            var Ai = Convert.ToInt32(new string(topString.Reverse().ToArray()), 2);
 
             // Right
             var rightString = new string(lines.Select(line => line.Last()).ToArray()).Replace('#', '1').Replace('.','0');
-            normalOrientation[1] = Convert.ToInt32(rightString, 2);
-            flippedSides[1] = Convert.ToInt32(new string(rightString.Reverse().ToArray()), 2);
+            var B = Convert.ToInt32(rightString, 2);
+            var Bi = Convert.ToInt32(new string(rightString.Reverse().ToArray()), 2);
 
             // Bottom
             var bottomString = lines.Last().Replace('#', '1').Replace('.','0');
-            normalOrientation[2] = Convert.ToInt32(bottomString, 2);
-            flippedSides[2] = Convert.ToInt32(new string(bottomString.Reverse().ToArray()), 2);
-            // flippedSides[2] = Convert.ToInt32(bottomString, 2);
-            // normalOrientation[2] = Convert.ToInt32(new string(bottomString.Reverse().ToArray()), 2);
+            var C = Convert.ToInt32(bottomString, 2);
+            var Ci = Convert.ToInt32(new string(bottomString.Reverse().ToArray()), 2);
 
             // Left
             var leftString = new string(lines.Select(line => line.First()).ToArray()).Replace('#', '1').Replace('.','0');
-            normalOrientation[3] = Convert.ToInt32(leftString, 2);
-            flippedSides[3] = Convert.ToInt32(new string(leftString.Reverse().ToArray()), 2);
-            // flippedSides[3] = Convert.ToInt32(leftString, 2);
-            // normalOrientation[3] = Convert.ToInt32(new string(leftString.Reverse().ToArray()), 2);
+            var D = Convert.ToInt32(leftString, 2);
+            var Di = Convert.ToInt32(new string(leftString.Reverse().ToArray()), 2);
 
-            Orientations.Add(normalOrientation);
-            Orientations.Add(new int[4] { flippedSides[0], flippedSides[3], flippedSides[2], flippedSides[1] });
+            Orientations.Add(new int[4] { A,  B,  C,  D  }); // Natural
+            Orientations.Add(new int[4] { Di, A,  Bi, C  }); // Natural + Rotate 1
+            Orientations.Add(new int[4] { Ci, Di, Ai, Bi }); // Natural + Rotate 2
+            Orientations.Add(new int[4] { B,  Ci, D,  Ai }); // Natural + Rotate 3
 
-            // Orientations.Add(normalOrientation);
-            // Orientations.Add(new int[4] { normalOrientation[2], flippedSides[1], normalOrientation[0], flippedSides[3] });
-            // Orientations.Add(new int[4] { flippedSides[0], normalOrientation[3], flippedSides[2], normalOrientation[1] });
-            // Orientations.Add(new int[4] { flippedSides[2], flippedSides[3], flippedSides[0], flippedSides[1] });
-            
-            DistinctValues = new int[8] {
-                normalOrientation[0],
-                normalOrientation[1],
-                normalOrientation[2],
-                normalOrientation[3],
-                flippedSides[0],
-                flippedSides[1],
-                flippedSides[2],
-                flippedSides[3]
-            };
+            Orientations.Add(new int[4] { Ai, D,  Ci, B  }); // Flipped Vertical
+            Orientations.Add(new int[4] { Bi, Ai, Di, Ci }); // Flipped Vertical + Rotate 1
+            Orientations.Add(new int[4] { C,  Bi, A,  Di }); // Flipped Vertical + Rotate 2
+            Orientations.Add(new int[4] { D,  C,  B,  A  }); // Flipped Vertical + Rotate 3
+
+            DistinctValues = new int[8] { A, B, C, D, Ai, Bi, Ci, Di };
         }
 
         public void OrientFirstPiece() {
@@ -132,29 +121,11 @@ namespace _20
 
             foreach (var matchingOrientation in matchingOrientations) {
                 Console.WriteLine($" -- Trying: {String.Join(", ",matchingOrientation)}");
-                // ROTATE THE PIECE INTO Placement
-                var valueLocationIndex = 0;
-                for (;valueLocationIndex < 4; valueLocationIndex++) {
-                    if (matchingOrientation[valueLocationIndex] == value) {
-                        var rotation = (valueLocationIndex - position) % 4;
-                        rotation = rotation < 0 ? rotation + 4 : rotation;
-
-                        Placement = new int[4];
-                        var j = 0;
-                        for (var i = rotation; i < 4; i++, j++) {
-                            Placement[j] = matchingOrientation[i];
-                        }
-                        for (var i = 0; i < rotation; i++, j++) {
-                            Placement[j] = matchingOrientation[i];
-                        }
-
-                        Console.WriteLine($" -- Result: {String.Join(", ",Placement)}");
-
-                        if (Enumerable.All(Enumerable.Range(0,4), i => SideValues[i] == 0 || Placement[i] == SideValues[i])) {
-                            // We found the right mix.
-                            return;
-                        }     
-                    }
+                if (Enumerable.All(Enumerable.Range(0,4), i => SideValues[i] == 0 || matchingOrientation[i] == SideValues[i])) {
+                    // We found the right mix.
+                    Placement = matchingOrientation;
+                    Console.WriteLine($" -- Result: {String.Join(", ",Placement)}");
+                    return;
                 }
             }
 
@@ -209,7 +180,7 @@ namespace _20
         static void Main(string[] args)
         {
             var mapping = new Dictionary<int, List<Piece>>();
-            var pieces = Piece.ParseInput(System.IO.File.ReadAllLines("test.txt"));
+            var pieces = Piece.ParseInput(System.IO.File.ReadAllLines("input.txt"));
             Console.WriteLine($"Total Pieces: {pieces.Count}");
             foreach (var piece in pieces) {
                 // piece.Print();
@@ -241,9 +212,8 @@ namespace _20
             }
             Console.WriteLine($"Value: {agg}");
 
-
-
-            var lastPiece = cornerPieces.First();
+            var bottomLeftPiece = cornerPieces.First();
+            var lastPiece = bottomLeftPiece;
             lastPiece.Orient(-1,2);
             lastPiece.Orient(-1,3);
 
@@ -298,62 +268,15 @@ namespace _20
                 Console.WriteLine("");
             }
 
+            // Build our image
+            var rowHeads = new List<Piece>();
+            for(var piece = bottomLeftPiece; piece != null; piece = piece.Adjacent[0]) {
+                rowHeads.Insert(0, piece);
+            }
 
+            foreach (var rowHead in rowHeads) {
 
-
-            // var workQueue = new Queue<Piece>();
-            // var seen = new HashSet<Piece>();
-
-            // var firstPiece = pieces.Where(piece => piece.Number == 3083).First();
-            // firstPiece.OrientFirstPiece();
-            // workQueue.Enqueue(firstPiece);
-            // seen.Add(firstPiece);
-
-            // while(workQueue.Count > 0) {
-            //     var piece = workQueue.Dequeue();
-            //     Console.WriteLine($"Evaluating piece {piece}");
-            //     for (var side = 0; side < 4; side++) {
-            //         Console.WriteLine($"  side: {side}");
-            //         if (piece.Adjacent[side] == null) {
-            //             var otherPiece = mapping[piece.Placement[side]].Where(item => item != piece && (item.Adjacent == null || item.Adjacent[(side+2)%4] == null)).FirstOrDefault();
-            //             if (otherPiece != null) {
-            //                 try {
-            //                     otherPiece.Orient(piece.Placement[side], (side + 2) % 4);
-            //                 } catch (Exception e) {
-            //                     Console.WriteLine($"    {otherPiece}: Orientation failed");
-            //                     continue;
-            //                 }
-            //                 // Should I do placement on the working piece?  That way all pieces are oriented together?
-
-            //                 piece.Adjacent[side] = otherPiece;
-            //                 otherPiece.Adjacent[(side+2)%4] = piece;
-
-            //                 if (!seen.Contains(otherPiece)) {
-            //                     seen.Add(otherPiece);
-            //                     workQueue.Enqueue(otherPiece);
-            //                 }
-            //                 Console.WriteLine($"    {otherPiece}: Matched for {side}");
-            //             }
-            //         } else {
-            //             Console.WriteLine($"    {piece.Adjacent[side]}: Already attached on {side}");
-            //         }
-            //     }
-            //     Console.WriteLine($"Finished {piece}");
-            //     Console.WriteLine("");
-            // }
-            // Console.WriteLine("---------------");
-            // foreach (var piece in pieces) {
-            //     piece.Print();
-            // }
-
-            // Console.WriteLine("--------------- CORNERS");
-
-            // var corners = pieces.Where(piece => piece.IsCorner);
-            // foreach (var piece in corners) {
-            //     Console.WriteLine(piece);
-            // }
-            // Console.WriteLine(corners.Aggregate(1L, (a, piece) => a * (long)piece.Number));
-
+            }
         }
     }
 }
