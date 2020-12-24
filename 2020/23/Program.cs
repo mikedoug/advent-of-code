@@ -57,7 +57,6 @@ namespace _23
 
             Stopwatch timer = new Stopwatch();
             timer.Start();
-            // for(long move = 1L; move <= 10L; move++) {
             for(long move = 1L; move <= 10_000_000L; move++) {
                 // Console.WriteLine($"-- move {move}");
 
@@ -73,40 +72,32 @@ namespace _23
                 // Rewire the tail of our cut
                 removed3.Next = null;
                 
-                var value = current.Value - 1;
-                if (value <= 0) {
-                    value = largest;
-                }                
+                var value = (current.Value == 1) ? largest : current.Value - 1;
+
                 Node choosen = null;
                 while(choosen == null) {
                     if (value != removed1.Value && value != removed1.Next.Value && value != removed3.Value) {
                         choosen = map[value];
                     } else {
-                        value--;
-                        if (value <= 0) {
-                            value = largest;
-                        }
+                        value = (value == 1) ? largest : value - 1;
                     }
                 }
 
                 // Console.WriteLine($"destination: {value}");
                 // Console.WriteLine("");
-                // cups = cups.Take(index+1).Union(removed).Union(cups.Skip(index+1)).Union(new int[]{current}).ToList();
                 
                 // rewire it back in
                 removed3.Next = choosen.Next;
                 choosen.Next = removed1;
-                
+
+                // Move to next cup
                 current = current.Next;
             }
             timer.Stop();
             Console.WriteLine($"-- Elapsed: {timer.Elapsed}");
 
-            // Console.WriteLine($"cups: {String.Join("  ", map[1].Walk())}");
+            Console.WriteLine($"cups: {String.Join("  ", map[1].Walk().Take(20))}");
             var one = map[1];
-            // for(var node = one.Next; node != one; node = node.Next) {
-            //     Console.WriteLine(node);
-            // }
             Console.WriteLine($"Cups-to-right: {one.Next} {one.Next.Next}");
             Console.WriteLine($"Product: {(long)one.Next.Value * (long)one.Next.Next.Value}");
         }
