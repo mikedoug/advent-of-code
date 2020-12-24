@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -14,16 +13,20 @@ namespace _24
         }
     }
 
-    public class Tile {
+    public record Tile {
         public int X {get; private set;}
         public int Y {get; private set;}
 
-        Regex regex = new Regex(@"(se|ne|sw|nw|w|e)");
+        private static Regex regex = new Regex(@"(se|ne|sw|nw|w|e)");
 
+        public Tile(int x, int y) {
+            X = x;
+            Y = y;
+        }
         public Tile(string line) {
             X = 0;
             Y = 0;
-            foreach(Match match in regex.Matches(line)) {
+            foreach(Match match in Tile.regex.Matches(line)) {
                 switch(match.Groups[0].Value) {
                     case "ne":
                         X += 1;
@@ -60,9 +63,9 @@ namespace _24
         {
             var tiles = System.IO.File.ReadLines($"input.txt").Select(line => new Tile(line)).ToList();
 
-            var map = new Dictionary<Tuple<int,int>, int>();
+            var map = new Dictionary<Tile, int>();
             foreach (var tile in tiles) {
-                var key = new Tuple<int,int>(tile.X, tile.Y);
+                var key = tile;
                 if (!map.ContainsKey(key)) {
                     map[key] = 1;
                 } else {
@@ -74,11 +77,11 @@ namespace _24
             Console.WriteLine($"Black cells: {black.Count()}");
 
             for( var i = 0; i < 100; i++) {
-                var flipList = new HashSet<Tuple<int,int>>();
-                var queue = new Queue<Tuple<int,int>>();
+                var flipList = new HashSet<Tile>();
+                var queue = new Queue<Tile>();
 
-                queue.EnqueueRange(black);
                 foreach(var tile in black) {
+                    queue.Enqueue(tile);
                     queue.EnqueueRange(getAdjacent(tile));
                 }
 
@@ -86,14 +89,9 @@ namespace _24
                     var tile = queue.Dequeue();
                     var count = getAdjacent(tile).Count(adjacentTile => map.ContainsKey(adjacentTile) && map[adjacentTile] % 2 == 1);
                     var color = map.ContainsKey(tile) && map[tile] % 2 == 1 ? "BLACK" : "WHITE";
-                    // Console.WriteLine($"Considering: {tile}; count={count}; color={color}");
 
-                    if ( color == "BLACK" && ( count == 0 || count > 2 ) ) {
+                    if ((color == "BLACK" && (count == 0 || count > 2)) || (color == "WHITE" && count == 2)) {
                         flipList.Add(tile);
-                        // Console.WriteLine(" -- Flip");
-                    } else if ( color == "WHITE" && count == 2) {
-                        flipList.Add(tile);
-                        // Console.WriteLine(" -- Flip");
                     }
                 }
 
@@ -104,21 +102,21 @@ namespace _24
                         map[tile] += 1;
                     }
                 }
+
                 black = map.Where(entry => entry.Value % 2 == 1).Select(entry => entry.Key);
             }
 
             Console.WriteLine($"Black cells: {black.Count()}");
-
         }
 
-        private static List<Tuple<int,int>> getAdjacent(Tuple<int, int> cell) {
-            return new List<Tuple<int,int>>() {
-                new Tuple<int, int>(cell.Item1 + 1, cell.Item2),
-                new Tuple<int, int>(cell.Item1,     cell.Item2 + 1),
-                new Tuple<int, int>(cell.Item1 - 1, cell.Item2 + 1),
-                new Tuple<int, int>(cell.Item1 - 1, cell.Item2),
-                new Tuple<int, int>(cell.Item1,     cell.Item2 - 1),
-                new Tuple<int, int>(cell.Item1 + 1, cell.Item2 - 1)
+        private static List<Tile> getAdjacent(Tile cell) {
+            return new List<Tile>() {
+                new Tile(cell.X + 1, cell.Y),
+                new Tile(cell.X,     cell.Y + 1),
+                new Tile(cell.X - 1, cell.Y + 1),
+                new Tile(cell.X - 1, cell.Y),
+                new Tile(cell.X,     cell.Y - 1),
+                new Tile(cell.X + 1, cell.Y - 1)
             };
         }
     }
